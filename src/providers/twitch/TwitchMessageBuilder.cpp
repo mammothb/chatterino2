@@ -550,7 +550,7 @@ void TwitchMessageBuilder::parseUsernameColor()
 void TwitchMessageBuilder::parseUsername()
 {
     if (!getSettings()->hideNicknameColors)
-    this->parseUsernameColor();
+        this->parseUsernameColor();
 
     // username
     this->userName = this->ircMessage->nick();
@@ -1271,25 +1271,28 @@ void TwitchMessageBuilder::appendTwitchBadges()
         }
         else
         {
-            auto splits = badge.split('/');
-            if (splits.size() != 2)
-                continue;
+            if (getSettings()->showBadgesMisc)
+            {
+                auto splits = badge.split('/');
+                if (splits.size() != 2)
+                    continue;
 
-            if (auto badgeEmote =
-                    this->twitchChannel->twitchBadge(splits[0], splits[1]))
-            {
-                this->emplace<BadgeElement>(badgeEmote.get(),
-                                            MessageElementFlag::BadgeVanity)
-                    ->setTooltip((*badgeEmote)->tooltip.string);
-                continue;
-            }
-            if (auto _badge = this->twitchChannel->globalTwitchBadges().badge(
-                    splits[0], splits[1]))
-            {
-                this->emplace<BadgeElement>(_badge.get(),
-                                            MessageElementFlag::BadgeVanity)
-                    ->setTooltip((*_badge)->tooltip.string);
-                continue;
+                if (auto badgeEmote =
+                        this->twitchChannel->twitchBadge(splits[0], splits[1]))
+                {
+                    this->emplace<BadgeElement>(badgeEmote.get(),
+                                                MessageElementFlag::BadgeVanity)
+                        ->setTooltip((*badgeEmote)->tooltip.string);
+                    continue;
+                }
+                if (auto _badge = this->twitchChannel->globalTwitchBadges().badge(
+                        splits[0], splits[1]))
+                {
+                    this->emplace<BadgeElement>(_badge.get(),
+                                                MessageElementFlag::BadgeVanity)
+                        ->setTooltip((*_badge)->tooltip.string);
+                    continue;
+                }
             }
         }
     }

@@ -81,6 +81,7 @@ public:
     BoolSetting showBadgesSubscription = {"/appearance/badges/subscription",
                                           true};
     BoolSetting showBadgesVanity = {"/appearance/badges/vanity", true};
+    BoolSetting showBadgesMisc= {"/appearance/badges/misc", true};
     BoolSetting showBadgesChatterino = {"/appearance/badges/chatterino", true};
 
     /// Behaviour
