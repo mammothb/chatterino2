@@ -549,6 +549,7 @@ void TwitchMessageBuilder::parseUsernameColor()
 
 void TwitchMessageBuilder::parseUsername()
 {
+    if (!getSettings()->hideNicknameColors)
     this->parseUsernameColor();
 
     // username

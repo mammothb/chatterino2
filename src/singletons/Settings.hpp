@@ -43,6 +43,7 @@ public:
         "/appearance/messages/hideModerationActions", false};
     BoolSetting colorizeNicknames = {"/appearance/messages/colorizeNicknames",
                                      false};
+    BoolSetting hideNicknameColors = {"/appearance/messages/hideNicknameColors", false};
 
     //    BoolSetting collapseLongMessages =
     //    {"/appearance/messages/collapseLongMessages", false};

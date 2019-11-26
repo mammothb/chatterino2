@@ -472,6 +472,7 @@ void GeneralPage::initLayout(SettingsLayout &layout)
                        true);
     layout.addCheckbox("Random username color for users who never set a color",
                        s.colorizeNicknames);
+    layout.addCheckbox("Hide username colors", s.hideNicknameColors);
     layout.addCheckbox("Mention users with a comma (User,)",
                        s.mentionUsersWithComma);
     layout.addCheckbox("Show joined users (< 1000 chatters)", s.showJoins);
