@@ -550,7 +550,9 @@ void TwitchMessageBuilder::parseUsernameColor()
 void TwitchMessageBuilder::parseUsername()
 {
     if (!getSettings()->hideNicknameColors)
+    {
         this->parseUsernameColor();
+    }
 
     // username
     this->userName = this->ircMessage->nick();
@@ -1217,14 +1219,14 @@ void TwitchMessageBuilder::appendTwitchBadges()
                     MessageElementFlag::BadgeChannelAuthority)
                 ->setTooltip("Broadcaster");
         }
-        else if (badge == "turbo/1")
+        else if (badge == "turbo/1" && getSettings()->showBadgesMisc)
         {
             this->emplace<ImageElement>(
                     Image::fromPixmap(getResources().twitch.turbo),
                     MessageElementFlag::BadgeVanity)
                 ->setTooltip("Twitch Turbo");
         }
-        else if (badge == "premium/1")
+        else if (badge == "premium/1" && getSettings()->showBadgesMisc)
         {
             this->emplace<ImageElement>(
                     Image::fromPixmap(getResources().twitch.prime),
@@ -1269,30 +1271,27 @@ void TwitchMessageBuilder::appendTwitchBadges()
                     MessageElementFlag::BadgeSubscription)
                 ->setTooltip("Twitch Subscriber");
         }
-        else
+        else if (getSettings()->showBadgesMisc)
         {
-            if (getSettings()->showBadgesMisc)
-            {
-                auto splits = badge.split('/');
-                if (splits.size() != 2)
-                    continue;
+            auto splits = badge.split('/');
+            if (splits.size() != 2)
+                continue;
 
-                if (auto badgeEmote =
-                        this->twitchChannel->twitchBadge(splits[0], splits[1]))
-                {
-                    this->emplace<BadgeElement>(badgeEmote.get(),
-                                                MessageElementFlag::BadgeVanity)
-                        ->setTooltip((*badgeEmote)->tooltip.string);
-                    continue;
-                }
-                if (auto _badge = this->twitchChannel->globalTwitchBadges().badge(
-                        splits[0], splits[1]))
-                {
-                    this->emplace<BadgeElement>(_badge.get(),
-                                                MessageElementFlag::BadgeVanity)
-                        ->setTooltip((*_badge)->tooltip.string);
-                    continue;
-                }
+            if (auto badgeEmote =
+                    this->twitchChannel->twitchBadge(splits[0], splits[1]))
+            {
+                this->emplace<BadgeElement>(badgeEmote.get(),
+                                            MessageElementFlag::BadgeVanity)
+                    ->setTooltip((*badgeEmote)->tooltip.string);
+                continue;
+            }
+            if (auto _badge = this->twitchChannel->globalTwitchBadges().badge(
+                    splits[0], splits[1]))
+            {
+                this->emplace<BadgeElement>(_badge.get(),
+                                            MessageElementFlag::BadgeVanity)
+                    ->setTooltip((*_badge)->tooltip.string);
+                continue;
             }
         }
     }
