@@ -37,13 +37,14 @@ public:
                                      false};
     BoolSetting separateMessages = {"/appearance/messages/separateMessages",
                                     false};
-    BoolSetting compactEmotes = {"/appearance/messages/compactEmotes", true};
+    BoolSetting compactEmotes = {"/appearance/messages/compactEmotes", false};
     BoolSetting hideModerated = {"/appearance/messages/hideModerated", false};
     BoolSetting hideModerationActions = {
         "/appearance/messages/hideModerationActions", false};
     BoolSetting colorizeNicknames = {"/appearance/messages/colorizeNicknames",
                                      false};
-    BoolSetting hideNicknameColors = {"/appearance/messages/hideNicknameColors", false};
+    BoolSetting hideNicknameColors = {
+        "/appearance/messages/hideNicknameColors", false};
 
     //    BoolSetting collapseLongMessages =
     //    {"/appearance/messages/collapseLongMessages", false};
