@@ -420,7 +420,6 @@ void GeneralPage::initLayout(SettingsLayout &layout)
     layout.addCheckbox("Subscriber ", getSettings()->showBadgesSubscription);
     layout.addCheckbox("Vanity (prime, bits, subgifter)",
                        getSettings()->showBadgesVanity);
-    layout.addCheckbox("Misc", getSettings()->showBadgesMisc);
     layout.addCheckbox("Chatterino", getSettings()->showBadgesChatterino);
 
     layout.addTitle("Chat title");
