@@ -346,6 +346,7 @@ MessagePtr TwitchMessageBuilder::build()
     if (iterator != this->tags.end())
     {
         this->hasBits_ = true;
+        this->bitsLeft = iterator.value().toInt();
         this->bits = iterator.value().toString();
     }
 
@@ -1266,12 +1267,67 @@ void TwitchMessageBuilder::appendChatterinoBadges()
 
 Outcome TwitchMessageBuilder::tryParseCheermote(const QString &string)
 {
+    if (this->bitsLeft == 0)
+    {
+        return Failure;
+    }
+
     auto cheerOpt = this->twitchChannel->cheerEmote(string);
+
     if (!cheerOpt)
     {
         return Failure;
     }
+
     auto &cheerEmote = *cheerOpt;
+    auto match = cheerEmote.regex.match(string);
+
+    if (!match.hasMatch())
+    {
+        return Failure;
+    }
+
+    int cheerValue = match.captured(1).toInt();
+
+    if (getSettings()->stackBits)
+    {
+        if (this->bitsStacked)
+        {
+            return Success;
+        }
+        if (cheerEmote.staticEmote)
+        {
+            this->emplace<EmoteElement>(cheerEmote.staticEmote,
+                                        MessageElementFlag::BitsStatic);
+        }
+        if (cheerEmote.animatedEmote)
+        {
+            this->emplace<EmoteElement>(cheerEmote.animatedEmote,
+                                        MessageElementFlag::BitsAnimated);
+        }
+        if (cheerEmote.color != QColor())
+        {
+            this->emplace<TextElement>(QString::number(this->bitsLeft),
+                                       MessageElementFlag::BitsAmount,
+                                       cheerEmote.color);
+        }
+        this->bitsStacked = true;
+        return Success;
+    }
+
+    if (this->bitsLeft >= cheerValue)
+    {
+        this->bitsLeft -= cheerValue;
+    }
+    else
+    {
+        QString newString = string;
+        newString.chop(QString::number(cheerValue).length());
+        newString += QString::number(cheerValue - this->bitsLeft);
+
+        return tryParseCheermote(newString);
+    }
+
     if (cheerEmote.staticEmote)
     {
         this->emplace<EmoteElement>(cheerEmote.staticEmote,
@@ -1284,9 +1340,11 @@ Outcome TwitchMessageBuilder::tryParseCheermote(const QString &string)
     }
     if (cheerEmote.color != QColor())
     {
-        this->emplace<TextElement>(this->bits, MessageElementFlag::BitsAmount,
+        this->emplace<TextElement>(match.captured(1),
+                                   MessageElementFlag::BitsAmount,
                                    cheerEmote.color);
     }
+
     return Success;
 }
 

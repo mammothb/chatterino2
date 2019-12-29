@@ -31,6 +31,7 @@
 
 namespace chatterino {
 namespace {
+    constexpr int TITLE_REFRESH_PERIOD = 10;
     constexpr char MAGIC_MESSAGE_SUFFIX[] = u8" \U000E0000";
 
     // parseRecentMessages takes a json object and returns a vector of
@@ -89,7 +90,7 @@ TwitchChannel::TwitchChannel(const QString &name,
     , bttvEmotes_(std::make_shared<EmoteMap>())
     , ffzEmotes_(std::make_shared<EmoteMap>())
     , mod_(false)
-    , titleRefreshedTime_(QTime::currentTime().addSecs(-titleRefreshPeriod_))
+    , titleRefreshedTime_(QTime::currentTime().addSecs(-TITLE_REFRESH_PERIOD))
 {
     log("[TwitchChannel:{}] Opened", name);
 
@@ -447,7 +448,7 @@ void TwitchChannel::refreshTitle()
         return;
     }
 
-    if (this->titleRefreshedTime_.elapsed() < this->titleRefreshPeriod_ * 1000)
+    if (this->titleRefreshedTime_.elapsed() < TITLE_REFRESH_PERIOD * 1000)
     {
         return;
     }
@@ -758,6 +759,7 @@ void TwitchChannel::refreshCheerEmotes()
 
                     cheerEmote.color = QColor(tier.color);
                     cheerEmote.minBits = tier.minBits;
+                    cheerEmote.regex = cheerEmoteSet.regex;
 
                     // TODO(pajlada): We currently hardcode dark here :|
                     // We will continue to do so for now since we haven't had to
