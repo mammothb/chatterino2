@@ -5,7 +5,6 @@
 #include "controllers/highlights/HighlightController.hpp"
 #include "controllers/ignores/IgnoreController.hpp"
 #include "controllers/pings/PingController.hpp"
-#include "debug/Log.hpp"
 #include "messages/Message.hpp"
 #include "providers/chatterino/ChatterinoBadges.hpp"
 #include "providers/twitch/TwitchBadges.hpp"
@@ -90,8 +89,6 @@ namespace {
             QStringList parts = badgeInfo.split('/');
             if (parts.size() != 2)
             {
-                log("Skipping badge-info because it split weird: {}",
-                    badgeInfo);
                 continue;
             }
 
@@ -110,7 +107,6 @@ namespace {
             QStringList parts = badge.split('/');
             if (parts.size() != 2)
             {
-                log("Skipping badge because it split weird: {}", badge);
                 continue;
             }
 
@@ -159,8 +155,8 @@ bool TwitchMessageBuilder::isIgnored() const
     {
         if (phrase.isBlock() && phrase.isMatch(this->originalMessage_))
         {
-            log("Blocking message because it contains ignored phrase {}",
-                phrase.getPattern());
+            qDebug() << "Blocking message because it contains ignored phrase"
+                     << phrase.getPattern();
             return true;
         }
     }
@@ -190,8 +186,8 @@ bool TwitchMessageBuilder::isIgnored() const
                     case ShowIgnoredUsersMessages::Never:
                         break;
                 }
-                log("Blocking message because it's from blocked user {}",
-                    user.name);
+                qDebug() << "Blocking message because it's from blocked user"
+                         << user.name;
                 return true;
             }
         }
@@ -427,8 +423,8 @@ void TwitchMessageBuilder::addWords(
             auto emoteImage = std::get<1>(*currentTwitchEmote);
             if (emoteImage == nullptr)
             {
-                log("emoteImage nullptr {}",
-                    std::get<2>(*currentTwitchEmote).string);
+                qDebug() << "emoteImage nullptr"
+                         << std::get<2>(*currentTwitchEmote).string;
             }
             this->emplace<EmoteElement>(emoteImage,
                                         MessageElementFlag::TwitchEmote);
@@ -774,7 +770,7 @@ void TwitchMessageBuilder::runIgnoreReplaces(
             {
                 if (std::get<1>(*copy) == nullptr)
                 {
-                    log("remem nullptr {}", std::get<2>(*copy).string);
+                    qDebug() << "remem nullptr" << std::get<2>(*copy).string;
                 }
             }
             std::vector<std::tuple<int, EmotePtr, EmoteName>> v(
@@ -812,7 +808,7 @@ void TwitchMessageBuilder::runIgnoreReplaces(
                 {
                     if (emote.second == nullptr)
                     {
-                        log("emote null {}", emote.first.string);
+                        qDebug() << "emote null" << emote.first.string;
                     }
                     twitchEmotes.push_back(std::tuple<int, EmotePtr, EmoteName>{
                         startIndex + pos, emote.second, emote.first});
@@ -875,7 +871,7 @@ void TwitchMessageBuilder::runIgnoreReplaces(
                 {
                     if (std::get<1>(tup) == nullptr)
                     {
-                        log("v nullptr {}", std::get<2>(tup).string);
+                        qDebug() << "v nullptr" << std::get<2>(tup).string;
                         continue;
                     }
                     QRegularExpression emoteregex(
@@ -944,7 +940,7 @@ void TwitchMessageBuilder::runIgnoreReplaces(
                 {
                     if (std::get<1>(tup) == nullptr)
                     {
-                        log("v nullptr {}", std::get<2>(tup).string);
+                        qDebug() << "v nullptr" << std::get<2>(tup).string;
                         continue;
                     }
                     QRegularExpression emoteregex(
@@ -994,8 +990,8 @@ void TwitchMessageBuilder::parseHighlights()
         {
             continue;
         }
-        log("Highlight because user {} sent a message",
-            this->ircMessage->nick());
+        qDebug() << "Highlight because user" << this->ircMessage->nick()
+                 << "sent a message";
         if (!this->highlightVisual_)
         {
             this->highlightVisual_ = true;
@@ -1047,8 +1043,8 @@ void TwitchMessageBuilder::parseHighlights()
             continue;
         }
 
-        log("Highlight because {} matches {}", this->originalMessage_,
-            highlight.getPattern());
+        qDebug() << "Highlight because" << this->originalMessage_ << "matches"
+                 << highlight.getPattern();
         if (!this->highlightVisual_)
         {
             this->highlightVisual_ = true;
@@ -1133,7 +1129,7 @@ void TwitchMessageBuilder::appendTwitchEmote(
             start, app->emotes->twitch.getOrCreateEmote(id, name), name};
         if (std::get<1>(tup) == nullptr)
         {
-            log("nullptr {}", std::get<2>(tup).string);
+            qDebug() << "nullptr" << std::get<2>(tup).string;
         }
         vec.push_back(std::move(tup));
     }
@@ -1219,7 +1215,7 @@ void TwitchMessageBuilder::appendTwitchBadges()
         auto badgeEmote = this->getTwitchBadge(badge);
         if (!badgeEmote)
         {
-            log("No channel/global variant found {}", badge.key_);
+            qDebug() << "No channel/global variant found" << badge.key_;
             continue;
         }
         auto tooltip = (*badgeEmote)->tooltip.string;
