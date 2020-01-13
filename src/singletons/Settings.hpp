@@ -169,8 +169,9 @@ public:
 
     QStringSetting logPath = {"/logging/path", ""};
 
-    QStringSetting pathHighlightSound = {"/highlighting/highlightSoundPath",
-                                         "qrc:/sounds/ping2.wav"};
+    QStringListSetting pathHighlightSound = {
+        "/highlighting/highlightSoundPath",
+        QStringList({"qrc:/sounds/ping2.wav"})};
 
     BoolSetting highlightAlwaysPlaySound = {"/highlighting/alwaysPlaySound",
                                             false};

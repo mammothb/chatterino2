@@ -1,6 +1,7 @@
 #pragma once
 
 #include "util/RapidJsonSerializeQString.hpp"
+#include "util/RapidJsonSerializeQStringList.hpp"
 
 #include <rapidjson/document.h>
 #include <pajlada/serialize.hpp>

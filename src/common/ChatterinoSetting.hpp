@@ -50,6 +50,7 @@ using DoubleSetting = ChatterinoSetting<double>;
 using IntSetting = ChatterinoSetting<int>;
 using StringSetting = ChatterinoSetting<std::string>;
 using QStringSetting = ChatterinoSetting<QString>;
+using QStringListSetting = ChatterinoSetting<QStringList>;
 
 template <typename Enum>
 class EnumSetting
