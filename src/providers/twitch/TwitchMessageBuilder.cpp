@@ -1,7 +1,5 @@
 #include "providers/twitch/TwitchMessageBuilder.hpp"
 
-#include<cstdlib>
-
 #include "Application.hpp"
 #include "controllers/accounts/AccountController.hpp"
 #include "controllers/highlights/HighlightController.hpp"
@@ -234,11 +232,11 @@ void TwitchMessageBuilder::triggerHighlights()
     {
         if (auto player = getPlayer())
         {
-            auto pathList = getSettings()->pathHighlightSound.getValue();
             // update the media player url if necessary
             QUrl highlightSoundUrl =
                 getSettings()->customHighlightSound
-                    ? QUrl::fromLocalFile(pathList.at(rand() % pathList.size()))
+                    ? QUrl::fromLocalFile(
+                          getSettings()->pathHighlightSound.getValue())
                     : QUrl("qrc:/sounds/ping2.wav");
 
             if (currentPlayerUrl != highlightSoundUrl)
