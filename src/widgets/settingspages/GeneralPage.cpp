@@ -304,6 +304,12 @@ void GeneralPage::initLayout(SettingsLayout &layout)
     layout.addCheckbox("Start with Windows", s.autorun);
 #endif
     layout.addCheckbox("Restart on crash", s.restartOnCrash);
+    if (!BaseWindow::supportsCustomWindowFrame())
+    {
+        layout.addCheckbox("Show preferences button (ctrl+p to show)",
+                           s.hidePreferencesButton, true);
+        layout.addCheckbox("Show user button", s.hideUserButton, true);
+    }
 
     layout.addTitle("Chat");
 
@@ -344,12 +350,6 @@ void GeneralPage::initLayout(SettingsLayout &layout)
                                s.pauseChatModifier);
     layout.addCheckbox("Show input when it's empty", s.showEmptyInput);
     layout.addCheckbox("Show message length while typing", s.showMessageLength);
-    if (!BaseWindow::supportsCustomWindowFrame())
-    {
-        layout.addCheckbox("Show preferences button (ctrl+p to show)",
-                           s.hidePreferencesButton, true);
-        layout.addCheckbox("Show user button", s.hideUserButton, true);
-    }
 
     layout.addTitle("Messages");
     layout.addCheckbox("Seperate with lines", s.separateMessages);
@@ -412,6 +412,32 @@ void GeneralPage::initLayout(SettingsLayout &layout)
                        {"EmojiOne 2", "EmojiOne 3", "Twitter", "Facebook",
                         "Apple", "Google", "Messenger"},
                        s.emojiSet);
+
+    layout.addTitle("R9K");
+    layout.addDescription(
+        "Hide similar messages by the same user. Temporarily show hidden "
+        "messages by pressing Ctrl+H.");
+    layout.addCheckbox("Hide similar messages", s.similarityEnabled);
+    //layout.addCheckbox("Gray out matches", s.colorSimilarDisabled);
+    layout.addCheckbox("Hide my own messages", s.hideSimilarMyself);
+    layout.addCheckbox("Receive notification sounds from hidden messages",
+                       s.shownSimilarTriggerHighlights);
+    s.hideSimilar.connect(
+        []() { getApp()->windows->forceLayoutChannelViews(); }, false);
+    layout.addDropdown<float>(
+        "Similarity threshold", {"0.5", "0.75", "0.9"}, s.similarityPercentage,
+        [](auto val) { return QString::number(val); },
+        [](auto args) { return fuzzyToFloat(args.value, 0.9f); });
+    layout.addDropdown<int>(
+        "Maximum delay between messages",
+        {"5s", "10s", "15s", "30s", "60s", "120s"}, s.hideSimilarMaxDelay,
+        [](auto val) { return QString::number(val) + "s"; },
+        [](auto args) { return fuzzyToInt(args.value, 5); });
+    layout.addDropdown<int>(
+        "Amount of previous messages to check", {"1", "2", "3", "4", "5"},
+        s.hideSimilarMaxMessagesToCheck,
+        [](auto val) { return QString::number(val); },
+        [](auto args) { return fuzzyToInt(args.value, 3); });
 
     layout.addTitle("Visible badges");
     layout.addCheckbox("Authority (staff, admin)",
