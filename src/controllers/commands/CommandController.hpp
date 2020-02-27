@@ -41,7 +41,7 @@ private:
         {'9', "8io0"}, {'0', "9op-"}, {'q', "aw21"}, {'w', "qase32"},
         {'e', "wsdr43"}, {'r', "edft54"}, {'t', "rfgy65"}, {'y', "tghu76"},
         {'u', "yhji87"}, {'i', "ujko98"}, {'o', "iklp09"}, {'p', "ol;[-0"},
-        {'a', "zxswq"}, {'s', "azxdew"}, {'d', "sxcfre"}, {'f', "dcvgtr"},
+        {'a', "zswq"}, {'s', "azxdew"}, {'d', "sxcfre"}, {'f', "dcvgtr"},
         {'g', "fvbhyt"}, {'h', "gbnjuy"}, {'j', "hnmkiu"}, {'k', "jm,loi"},
         {'l', "k,.;po"}, {'z', "xsa"}, {'x', "zcds"}, {'c', "xvfd"},
         {'v', "cbgf"}, {'b', "vnhg"}, {'n', "bmjh"}, {'m', "n,kj"},
