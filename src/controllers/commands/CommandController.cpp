@@ -23,6 +23,8 @@
 #include <QFile>
 #include <QRegularExpression>
 
+#include <cstdlib>
+
 #define TWITCH_DEFAULT_COMMANDS                                         \
     {                                                                   \
         "/help", "/w", "/me", "/disconnect", "/mods", "/color", "/ban", \
@@ -498,11 +500,16 @@ QString CommandController::execCommand(const QString &textNoEmoji,
     }
 
     {
+        auto hasTypo = commandName.back() == '+';
+        if (hasTypo)
+        {
+          commandName = commandName.remove(commandName.size() - 1, 1);
+        }
         // check if custom command exists
         const auto it = this->commandsMap_.find(commandName);
         if (it != this->commandsMap_.end())
         {
-            return this->execCustomCommand(words, it.value(), dryRun);
+            return this->execCustomCommand(words, it.value(), dryRun, hasTypo);
         }
     }
 
@@ -523,7 +530,8 @@ QString CommandController::execCommand(const QString &textNoEmoji,
 
 QString CommandController::execCustomCommand(const QStringList &words,
                                              const Command &command,
-                                             bool dryRun)
+                                             bool dryRun,
+                                             bool hasTypo)
 {
     QString result;
 
@@ -595,6 +603,10 @@ QString CommandController::execCustomCommand(const QStringList &words,
     }
 
     auto res = result.replace("{{", "{");
+    if (hasTypo)
+    {
+        res = generateTypo(res);
+    }
 
     if (dryRun || !appendWhisperMessageStringLocally(res))
     {
@@ -605,6 +617,53 @@ QString CommandController::execCustomCommand(const QStringList &words,
         sendWhisperMessage(res);
         return "";
     }
+}
+
+QString CommandController::generateTypo(const QString &text)
+{
+    auto res = text;
+    for (auto i = 0; i < res.size(); ++i)
+    {
+        // neighbors
+        if (rand() % 2000 < typoRate_ &&
+            this->keyMap_.keys().count(res.at(i)) > 0)
+        {
+            auto replace = this->keyMap_.value(res.at(i), res.at(i));
+            res = res.replace(i, 1, replace[rand() % replace.size()]);
+        }
+        // swap letters
+        else if (rand() % 2000 < typoRate_ && i > 0 && i < text.size() - 1 &&
+                 (res.at(i - 1).isLower() != res.at(i).isLower() ||
+                  res.at(i + 1).isLower() != res.at(i).isLower()))
+        {
+            auto tmp = res.at(i);
+            res = res.replace(i, 1, res.at(i - 1));
+            res = res.replace(i - 1, 1, tmp);
+            ++i;
+        }
+        // wrong case
+        else if (rand() % 5000 < typoRate_ && i > 0 && i < text.size() - 1 &&
+                 (res.at(i - 1).isLower() != res.at(i).isLower() ||
+                  res.at(i + 1).isLower() != res.at(i).isLower()))
+        {
+            res = res.replace(i, 1, res.at(i).isLower() ? res.at(i).toUpper() :
+                              res.at(i).toUpper());
+        }
+        // missing letter
+        else if (rand() % 5000 < typoRate_)
+        {
+            res = res.remove(i, 1);
+        }
+        // additional letter
+        else if (rand() % 10000 < typoRate_ && i > 0 && i < text.size() - 1 &&
+                 (res.at(i - 1) != res.at(i) || res.at(i + 1) != res.at(i)))
+        {
+            auto replace = this->keyMap_.value(res.at(i), res.at(i)) +
+                res.at(i);
+            res = res.insert(i, replace[rand() % replace.size()]);
+        }
+    }
+    return res;
 }
 
 QStringList CommandController::getDefaultTwitchCommandList()

@@ -34,6 +34,27 @@ public:
     CommandModel *createModel(QObject *parent);
 
 private:
+    const int typoRate_ = 10;
+    const QMap<QChar, QString> keyMap_{
+        {'1', "`2q"}, {'2', "1qw3"}, {'3', "2we4"}, {'4', "3er5"},
+        {'5', "4rt6"}, {'6', "5ty7"}, {'7', "6yu8"}, {'8', "7ui9"},
+        {'9', "8io0"}, {'0', "9op-"}, {'q', "aw21"}, {'w', "qase32"},
+        {'e', "wsdr43"}, {'r', "edft54"}, {'t', "rfgy65"}, {'y', "tghu76"},
+        {'u', "yhji87"}, {'i', "ujko98"}, {'o', "iklp09"}, {'p', "ol;[-0"},
+        {'a', "zxswq"}, {'s', "azxdew"}, {'d', "sxcfre"}, {'f', "dcvgtr"},
+        {'g', "fvbhyt"}, {'h', "gbnjuy"}, {'j', "hnmkiu"}, {'k', "jm,loi"},
+        {'l', "k,.;po"}, {'z', "xsa"}, {'x', "zcds"}, {'c', "xvfd"},
+        {'v', "cbgf"}, {'b', "vnhg"}, {'n', "bmjh"}, {'m', "n,kj"},
+        {'!', "~Q@"}, {'@', "~QW#"}, {'#', "@WE$"}, {'$', "#ER%"},
+        {'%', "$RT^"}, {'^', "%TY&"}, {'&', "^YU*"}, {'*', "&UI("},
+        {'(', "*IO)"}, {')', "(OP_"}, {'Q', "AW@!"}, {'W', "QASE#@"},
+        {'E', "WSDR$#"}, {'R', "EDFT%$"}, {'T', "RFGY^%"}, {'Y', "TGHU&^"},
+        {'U', "YHJI*&"}, {'I', "UJKO(*"}, {'O', "IKLP)("}, {'P', "OL:{_)"},
+        {'A', "ZSWQ"}, {'S', "AZXDEW"}, {'D', "SXCFRE"}, {'F', "DCVGTR"},
+        {'G', "FVBHYT"}, {'H', "GBNJUY"}, {'J', "HNMKIU"}, {'K', "JM<LOI"},
+        {'L', "K<>:PO"}, {'Z', "XSA"}, {'X', "ZCDS"}, {'C', "XVFD"},
+        {'V', "CBGF"}, {'B', "VNHG"}, {'N', "BMJH"}, {'M', "N<KJ"}};
+    
     void load(Paths &paths);
 
     QMap<QString, Command> commandsMap_;
@@ -48,7 +69,9 @@ private:
         commandsSetting_;
 
     QString execCustomCommand(const QStringList &words, const Command &command,
-                              bool dryRun);
+                              bool dryRun, bool hasType = false);
+
+    QString generateTypo(const QString &text);
 };
 
 }  // namespace chatterino
