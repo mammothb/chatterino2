@@ -2,41 +2,18 @@
 
 #include "Application.hpp"
 #include "controllers/moderationactions/ModerationActionModel.hpp"
-#include "singletons/Settings.hpp"
+#include "util/PersistSignalVector.hpp"
 
 #include <QRegularExpression>
 
 namespace chatterino {
-
-ModerationActions::ModerationActions()
-{
-}
 
 void ModerationActions::initialize(Settings &settings, Paths &paths)
 {
     assert(!this->initialized_);
     this->initialized_ = true;
 
-    this->setting_ =
-        std::make_unique<ChatterinoSetting<std::vector<ModerationAction>>>(
-            "/moderation/actions");
-
-    for (auto &val : this->setting_->getValue())
-    {
-        this->items.insertItem(val);
-    }
-
-    this->items.delayedItemsChanged.connect([this] {  //
-        this->setting_->setValue(this->items.getVector());
-    });
-}
-
-ModerationActionModel *ModerationActions::createModel(QObject *parent)
-{
-    ModerationActionModel *model = new ModerationActionModel(parent);
-    model->init(&this->items);
-
-    return model;
+    persist(this->items, "/moderation/actions");
 }
 
 }  // namespace chatterino

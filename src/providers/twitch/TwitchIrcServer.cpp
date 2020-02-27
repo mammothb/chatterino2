@@ -7,10 +7,8 @@
 #include "common/Common.hpp"
 #include "common/Env.hpp"
 #include "controllers/accounts/AccountController.hpp"
-#include "controllers/highlights/HighlightController.hpp"
 #include "messages/Message.hpp"
 #include "messages/MessageBuilder.hpp"
-#include "providers/twitch/ChatroomChannel.hpp"
 #include "providers/twitch/IrcMessageHandler.hpp"
 #include "providers/twitch/PubsubClient.hpp"
 #include "providers/twitch/TwitchAccount.hpp"
@@ -23,21 +21,6 @@
 using namespace std::chrono_literals;
 
 namespace chatterino {
-
-namespace {
-    bool isChatroom(const QString &channel)
-    {
-        if (channel.left(10) == "chatrooms:")
-        {
-            auto reflist = channel.splitRef(':');
-            if (reflist.size() == 3)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-}  // namespace
 
 TwitchIrcServer::TwitchIrcServer()
     : whispersChannel(new Channel("/whispers", Channel::Type::TwitchWhispers))
@@ -100,18 +83,8 @@ void TwitchIrcServer::initializeConnection(IrcConnection *connection,
 std::shared_ptr<Channel> TwitchIrcServer::createChannel(
     const QString &channelName)
 {
-    std::shared_ptr<TwitchChannel> channel;
-    if (isChatroom(channelName))
-    {
-        channel = std::static_pointer_cast<TwitchChannel>(
-            std::shared_ptr<ChatroomChannel>(new ChatroomChannel(
-                channelName, this->twitchBadges, this->bttv, this->ffz)));
-    }
-    else
-    {
-        channel = std::shared_ptr<TwitchChannel>(new TwitchChannel(
-            channelName, this->twitchBadges, this->bttv, this->ffz));
-    }
+    auto channel = std::shared_ptr<TwitchChannel>(new TwitchChannel(
+        channelName, this->twitchBadges, this->bttv, this->ffz));
     channel->initialize();
 
     channel->sendMessageSignal.connect(

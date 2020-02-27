@@ -14,9 +14,7 @@ class TaggedUsersController final : public Singleton
 public:
     TaggedUsersController();
 
-    SortedSignalVector<TaggedUser, std::less<TaggedUser>> users;
-
-    TaggedUsersModel *createModel(QObject *parent = nullptr);
+    SignalVector<TaggedUser> users;
 };
 
 }  // namespace chatterino

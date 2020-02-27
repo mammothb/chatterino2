@@ -73,7 +73,6 @@ QString fetchLogDirectorySize()
 }
 
 ModerationPage::ModerationPage()
-    : SettingsPage("Moderation", ":/settings/moderation.svg")
 {
     auto app = getApp();
     LayoutCreator<ModerationPage> layoutCreator(this);
@@ -175,7 +174,8 @@ ModerationPage::ModerationPage()
         EditableModelView *view =
             modMode
                 .emplace<EditableModelView>(
-                    app->moderationActions->createModel(nullptr))
+                    (new ModerationActionModel(nullptr))
+                        ->initialized(&app->moderationActions->items))
                 .getElement();
 
         view->setTitles({"Actions"});
@@ -185,7 +185,7 @@ ModerationPage::ModerationPage()
             0, QHeaderView::Stretch);
 
         view->addButtonPressed.connect([] {
-            getApp()->moderationActions->items.appendItem(
+            getApp()->moderationActions->items.append(
                 ModerationAction("/timeout {user} 300"));
         });
 

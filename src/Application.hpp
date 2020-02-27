@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <memory>
 
+#include "common/SignalVector.hpp"
 #include "common/Singleton.hpp"
 #include "singletons/NativeMessaging.hpp"
 
@@ -18,7 +19,7 @@ class TaggedUsersController;
 class AccountController;
 class ModerationActions;
 class NotificationController;
-class PingController;
+class MutedChannelController;
 
 class Theme;
 class WindowManager;
@@ -58,10 +59,8 @@ public:
 
     AccountController *const accounts{};
     CommandController *const commands{};
-    HighlightController *const highlights{};
     NotificationController *const notifications{};
-    PingController *const pings{};
-    IgnoreController *const ignores{};
+    MutedChannelController *const pings{};
     TaggedUsersController *const taggedUsers{};
     ModerationActions *const moderationActions{};
     TwitchIrcServer *const twitch2{};

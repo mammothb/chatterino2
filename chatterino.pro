@@ -131,7 +131,6 @@ SOURCES += \
     src/controllers/commands/CommandController.cpp \
     src/controllers/commands/CommandModel.cpp \
     src/controllers/highlights/HighlightBlacklistModel.cpp \
-    src/controllers/highlights/HighlightController.cpp \
     src/controllers/highlights/HighlightModel.cpp \
     src/controllers/highlights/HighlightPhrase.cpp \
     src/controllers/highlights/UserHighlightModel.cpp \
@@ -142,8 +141,8 @@ SOURCES += \
     src/controllers/moderationactions/ModerationActions.cpp \
     src/controllers/notifications/NotificationController.cpp \
     src/controllers/notifications/NotificationModel.cpp \
-    src/controllers/pings/PingController.cpp \
-    src/controllers/pings/PingModel.cpp \
+    src/controllers/pings/MutedChannelController.cpp \
+    src/controllers/pings/MutedChannelModel.cpp \
     src/controllers/taggedusers/TaggedUser.cpp \
     src/controllers/taggedusers/TaggedUsersController.cpp \
     src/controllers/taggedusers/TaggedUsersModel.cpp \
@@ -178,7 +177,6 @@ SOURCES += \
     src/providers/irc/IrcConnection2.cpp \
     src/providers/irc/IrcServer.cpp \
     src/providers/LinkResolver.cpp \
-    src/providers/twitch/ChatroomChannel.cpp \
     src/providers/twitch/IrcMessageHandler.cpp \
     src/providers/twitch/PartialTwitchUser.cpp \
     src/providers/twitch/PubsubActions.cpp \
@@ -327,7 +325,6 @@ HEADERS += \
     src/controllers/commands/CommandModel.hpp \
     src/controllers/highlights/HighlightBlacklistModel.hpp \
     src/controllers/highlights/HighlightBlacklistUser.hpp \
-    src/controllers/highlights/HighlightController.hpp \
     src/controllers/highlights/HighlightModel.hpp \
     src/controllers/highlights/HighlightPhrase.hpp \
     src/controllers/highlights/UserHighlightModel.hpp \
@@ -339,8 +336,8 @@ HEADERS += \
     src/controllers/moderationactions/ModerationActions.hpp \
     src/controllers/notifications/NotificationController.hpp \
     src/controllers/notifications/NotificationModel.hpp \
-    src/controllers/pings/PingController.hpp \
-    src/controllers/pings/PingModel.hpp \
+    src/controllers/pings/MutedChannelController.hpp \
+    src/controllers/pings/MutedChannelModel.hpp \
     src/controllers/taggedusers/TaggedUser.hpp \
     src/controllers/taggedusers/TaggedUsersController.hpp \
     src/controllers/taggedusers/TaggedUsersModel.hpp \
@@ -382,7 +379,6 @@ HEADERS += \
     src/providers/irc/IrcConnection2.hpp \
     src/providers/irc/IrcServer.hpp \
     src/providers/LinkResolver.hpp \
-    src/providers/twitch/ChatroomChannel.hpp \
     src/providers/twitch/EmoteValue.hpp \
     src/providers/twitch/IrcMessageHandler.hpp \
     src/providers/twitch/PartialTwitchUser.hpp \
@@ -436,6 +432,7 @@ HEADERS += \
     src/util/LayoutCreator.hpp \
     src/util/LayoutHelper.hpp \
     src/util/Overloaded.hpp \
+    src/util/PersistSignalVector.hpp \
     src/util/PostToThread.hpp \
     src/util/QObjectRef.hpp \
     src/util/QStringHash.hpp \
@@ -562,3 +559,11 @@ git_hash = $$str_member($$git_commit, 0, 8)
 DEFINES += CHATTERINO_GIT_COMMIT=\\\"$$git_commit\\\"
 DEFINES += CHATTERINO_GIT_RELEASE=\\\"$$git_release\\\"
 DEFINES += CHATTERINO_GIT_HASH=\\\"$$git_hash\\\"
+
+CONFIG(debug, debug|release) {
+    message("Building Chatterino2 DEBUG")
+} else {
+    message("Building Chatterino2 RELEASE")
+}
+
+message("Injected git values: $$git_commit ($$git_release) $$git_hash")
