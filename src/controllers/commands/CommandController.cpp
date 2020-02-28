@@ -503,7 +503,7 @@ QString CommandController::execCommand(const QString &textNoEmoji,
         auto hasTypo = commandName.back() == '+';
         if (hasTypo)
         {
-          commandName = commandName.remove(commandName.size() - 1, 1);
+            commandName = commandName.remove(commandName.size() - 1, 1);
         }
         // check if custom command exists
         const auto it = this->commandsMap_.find(commandName);
@@ -530,8 +530,7 @@ QString CommandController::execCommand(const QString &textNoEmoji,
 
 QString CommandController::execCustomCommand(const QStringList &words,
                                              const Command &command,
-                                             bool dryRun,
-                                             bool hasTypo)
+                                             bool dryRun, bool hasTypo)
 {
     QString result;
 
@@ -646,8 +645,8 @@ QString CommandController::generateTypo(const QString &text)
                  (res.at(i - 1).isLower() != res.at(i).isLower() ||
                   res.at(i + 1).isLower() != res.at(i).isLower()))
         {
-            res = res.replace(i, 1, res.at(i).isLower() ? res.at(i).toUpper() :
-                              res.at(i).toUpper());
+            res = res.replace(i, 1, res.at(i).isLower() ? res.at(i).toUpper()
+                                                        : res.at(i).toUpper());
         }
         // missing letter
         else if (rand() % 5000 < typoRate_)
@@ -658,8 +657,8 @@ QString CommandController::generateTypo(const QString &text)
         else if (rand() % 10000 < typoRate_ && i > 0 && i < text.size() - 1 &&
                  (res.at(i - 1) != res.at(i) || res.at(i + 1) != res.at(i)))
         {
-            auto replace = this->keyMap_.value(res.at(i), res.at(i)) +
-                res.at(i);
+            auto replace =
+                this->keyMap_.value(res.at(i), res.at(i)) + res.at(i);
             res = res.insert(i, replace[rand() % replace.size()]);
         }
     }
