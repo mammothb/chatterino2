@@ -3,7 +3,7 @@
 #include "Application.hpp"
 #include "controllers/accounts/AccountController.hpp"
 #include "controllers/ignores/IgnoreController.hpp"
-#include "controllers/pings/MutedChannelController.hpp"
+#include "controllers/ignores/IgnorePhrase.hpp"
 #include "messages/Message.hpp"
 #include "providers/chatterino/ChatterinoBadges.hpp"
 #include "providers/twitch/TwitchBadges.hpp"
@@ -238,7 +238,7 @@ void TwitchMessageBuilder::triggerHighlights()
         return;
     }
 
-    if (getApp()->pings->isMuted(this->channel->getName()))
+    if (getCSettings().isMutedChannel(this->channel->getName()))
     {
         // Do nothing. Pings are muted in this channel.
         return;

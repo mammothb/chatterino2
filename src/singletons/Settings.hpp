@@ -15,26 +15,35 @@ namespace chatterino {
 class HighlightPhrase;
 class HighlightBlacklistUser;
 class IgnorePhrase;
+class TaggedUser;
 
-// Settings which are availlable for reading on all threads.
+/// Settings which are availlable for reading on all threads.
 class ConcurrentSettings
 {
 public:
     ConcurrentSettings();
 
-    // clang-format off
-    SignalVector<HighlightPhrase>        &highlightedMessages;
-    SignalVector<HighlightPhrase>        &highlightedUsers;
+    SignalVector<HighlightPhrase> &highlightedMessages;
+    SignalVector<HighlightPhrase> &highlightedUsers;
     SignalVector<HighlightBlacklistUser> &blacklistedUsers;
-    SignalVector<IgnorePhrase>           &ignoredMessages;
-    // clang-format on
+    SignalVector<IgnorePhrase> &ignoredMessages;
+    SignalVector<QString> &mutedChannels;
+    //SignalVector<TaggedUser> &taggedUsers;
+    SignalVector<ModerationAction> &moderationActions;
 
     bool isHighlightedUser(const QString &username);
     bool isBlacklistedUser(const QString &username);
+    bool isMutedChannel(const QString &channelName);
+    bool toggleMutedChannel(const QString &channelName);
+
+private:
+    void mute(const QString &channelName);
+    void unmute(const QString &channelName);
 };
 
 ConcurrentSettings &getCSettings();
 
+/// Settings which are availlable for reading and writing on the gui thread.
 // These settings are still accessed concurrently in the code but it is bad practice.
 class Settings : public ABSettings, public ConcurrentSettings
 {
@@ -127,6 +136,8 @@ public:
         "/behaviour/autocompletion/smallStreamerLimit", 1000};
     BoolSetting prefixOnlyEmoteCompletion = {
         "/behaviour/autocompletion/prefixOnlyCompletion", true};
+    BoolSetting userCompletionOnlyWithAt = {
+        "/behaviour/autocompletion/userCompletionOnlyWithAt", false};
 
     FloatSetting pauseOnHoverDuration = {"/behaviour/pauseOnHoverDuration", 0};
     EnumSetting<Qt::KeyboardModifier> pauseChatModifier = {
