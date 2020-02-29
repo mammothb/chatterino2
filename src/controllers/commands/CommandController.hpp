@@ -54,7 +54,7 @@ private:
         {'G', "FVBHYT"}, {'H', "GBNJUY"}, {'J', "HNMKIU"}, {'K', "JM<LOI"},
         {'L', "K<>:PO"}, {'Z', "XSA"},    {'X', "ZCDS"},   {'C', "XVFD"},
         {'V', "CBGF"},   {'B', "VNHG"},   {'N', "BMJH"},   {'M', "N<KJ"}};
-    
+
     void load(Paths &paths);
 
     QMap<QString, Command> commandsMap_;

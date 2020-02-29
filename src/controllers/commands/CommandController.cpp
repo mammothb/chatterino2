@@ -645,8 +645,9 @@ QString CommandController::generateTypo(const QString &text)
                  (res.at(i - 1).isLower() != res.at(i).isLower() ||
                   res.at(i + 1).isLower() != res.at(i).isLower()))
         {
-            res = res.replace(i, 1, res.at(i).isLower() ? res.at(i).toUpper()
-                                                        : res.at(i).toUpper());
+            res = res.replace(i, 1,
+                              res.at(i).isLower() ? res.at(i).toUpper()
+                                                  : res.at(i).toUpper());
         }
         // missing letter
         else if (rand() % 5000 < typoRate_)
