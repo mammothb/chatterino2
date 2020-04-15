@@ -259,6 +259,9 @@ public:
                                        "Choose"};
     QStringSetting streamlinkOpts = {"/external/streamlink/options", ""};
 
+    // Custom URI Scheme
+    QStringSetting customURIScheme = {"/external/urischeme"};
+
     /// Misc
     BoolSetting betaUpdates = {"/misc/beta", false};
 #ifdef Q_OS_LINUX
@@ -277,6 +280,8 @@ public:
     BoolSetting restartOnCrash = {"/misc/restartOnCrash", false};
     BoolSetting attachExtensionToAnyProcess = {
         "/misc/attachExtensionToAnyProcess", false};
+    BoolSetting hideViewerCountAndDuration = {
+        "/misc/hideViewerCountAndDuration", false};
 
     /// Debug
     BoolSetting showUnhandledIrcMessages = {"/debug/showUnhandledIrcMessages",

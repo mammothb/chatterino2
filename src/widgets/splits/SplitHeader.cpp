@@ -94,8 +94,11 @@ namespace {
             .arg(s.game.toHtmlEscaped())
             .arg(s.game.isEmpty() ? QString() : "<br>")
             .arg(s.rerun ? "Vod-casting" : "Live")
-            .arg(s.uptime)
-            .arg(QString::number(s.viewerCount));
+            .arg(getSettings()->hideViewerCountAndDuration ? "&lt;Hidden&gt;"
+                                                           : s.uptime)
+            .arg(getSettings()->hideViewerCountAndDuration
+                     ? "&lt;Hidden&gt;"
+                     : QString::number(s.viewerCount));
     }
     auto formatOfflineTooltip(const TwitchChannel::StreamStatus &s)
     {
@@ -245,6 +248,13 @@ void SplitHeader::initializeLayout()
                              }
                          });
 
+    getSettings()->customURIScheme.connect([this] {
+        if (const auto drop = this->dropdownButton_)
+        {
+            drop->setMenu(this->createMainMenu());
+        }
+    });
+
     layout->setMargin(0);
     layout->setSpacing(0);
     this->setLayout(layout);
@@ -289,6 +299,12 @@ std::unique_ptr<QMenu> SplitHeader::createMainMenu()
 #endif
         menu->addAction(OPEN_IN_STREAMLINK, this->split_,
                         &Split::openInStreamlink);
+
+        if (!getSettings()->customURIScheme.getValue().isEmpty())
+        {
+            menu->addAction("Open with URI Scheme", this->split_,
+                            &Split::openWithCustomScheme);
+        }
         menu->addSeparator();
     }
 
