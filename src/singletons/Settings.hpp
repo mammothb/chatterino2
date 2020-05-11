@@ -163,6 +163,7 @@ public:
     /// Links
     BoolSetting linksDoubleClickOnly = {"/links/doubleClickToOpen", false};
     BoolSetting linkInfoTooltip = {"/links/linkInfoTooltip", false};
+    IntSetting thumbnailSize = {"/appearance/thumbnailSize", 0};
     BoolSetting unshortLinks = {"/links/unshortLinks", false};
     BoolSetting lowercaseDomains = {"/links/linkLowercase", true};
 
@@ -206,6 +207,17 @@ public:
         "/highlighting/whisperHighlightSoundUrl", ""};
     QStringSetting whisperHighlightColor = {
         "/highlighting/whisperHighlightColor", ""};
+
+    BoolSetting enableRedeemedHighlight = {
+        "/highlighting/redeemedHighlight/highlighted", true};
+    //    BoolSetting enableRedeemedHighlightSound = {
+    //        "/highlighting/redeemedHighlight/enableSound", false};
+    //    BoolSetting enableRedeemedHighlightTaskbar = {
+    //        "/highlighting/redeemedHighlight/enableTaskbarFlashing", false};
+    QStringSetting redeemedHighlightSoundUrl = {
+        "/highlighting/redeemedHighlightSoundUrl", ""};
+    QStringSetting redeemedHighlightColor = {
+        "/highlighting/redeemedHighlightColor", ""};
 
     BoolSetting enableSubHighlight = {
         "/highlighting/subHighlight/subsHighlighted", true};
@@ -282,6 +294,7 @@ public:
         "/misc/attachExtensionToAnyProcess", false};
     BoolSetting hideViewerCountAndDuration = {
         "/misc/hideViewerCountAndDuration", false};
+    BoolSetting askOnImageUpload = {"/misc/askOnImageUpload", true};
 
     /// Debug
     BoolSetting showUnhandledIrcMessages = {"/debug/showUnhandledIrcMessages",

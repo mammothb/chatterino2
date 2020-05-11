@@ -60,6 +60,7 @@ QColor getRandomColor(const QVariant &userId)
         colorSeed = std::rand();
     }
 
+    assert(twitchUsernameColors.size() != 0);
     const auto colorIndex = colorSeed % twitchUsernameColors.size();
     return twitchUsernameColors[colorIndex];
 }
@@ -294,6 +295,13 @@ MessagePtr TwitchMessageBuilder::build()
     }
 
     this->historicalMessage_ = this->tags.contains("historical");
+
+    if (this->tags.contains("msg-id") &&
+        this->tags["msg-id"].toString().split(';').contains(
+            "highlighted-message"))
+    {
+        this->message().flags.set(MessageFlag::RedeemedHighlight);
+    }
 
     // timestamp
     if (this->historicalMessage_)
@@ -1294,7 +1302,6 @@ void TwitchMessageBuilder::appendTwitchBadges()
         auto badgeEmote = this->getTwitchBadge(badge);
         if (!badgeEmote)
         {
-            qDebug() << "No channel/global variant found" << badge.key_;
             continue;
         }
         auto tooltip = (*badgeEmote)->tooltip.string;

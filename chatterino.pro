@@ -217,6 +217,8 @@ SOURCES += \
     src/util/JsonQuery.cpp \
     src/util/RapidjsonHelpers.cpp \
     src/util/StreamLink.cpp \
+    src/util/Twitch.cpp \
+    src/util/NuulsUploader.cpp \
     src/util/WindowsHelper.cpp \
     src/widgets/AccountSwitchPopup.cpp \
     src/widgets/AccountSwitchWidget.cpp \
@@ -229,7 +231,6 @@ SOURCES += \
     src/widgets/dialogs/IrcConnectionEditor.cpp \
     src/widgets/dialogs/LastRunCrashDialog.cpp \
     src/widgets/dialogs/LoginDialog.cpp \
-    src/widgets/dialogs/LogsPopup.cpp \
     src/widgets/dialogs/NotificationPopup.cpp \
     src/widgets/dialogs/QualityPopup.cpp \
     src/widgets/dialogs/SelectChannelDialog.cpp \
@@ -429,6 +430,7 @@ HEADERS += \
     src/util/PostToThread.hpp \
     src/util/QObjectRef.hpp \
     src/util/QStringHash.hpp \
+    src/util/Twitch.hpp \
     src/util/rangealgorithm.hpp \
     src/util/RapidjsonHelpers.hpp \
     src/util/RapidJsonSerializeQString.hpp \
@@ -439,6 +441,7 @@ HEADERS += \
     src/util/Shortcut.hpp \
     src/util/StandardItemHelper.hpp \
     src/util/StreamLink.hpp \
+    src/util/NuulsUploader.hpp \
     src/util/WindowsHelper.hpp \
     src/widgets/AccountSwitchPopup.hpp \
     src/widgets/AccountSwitchWidget.hpp \
@@ -451,7 +454,6 @@ HEADERS += \
     src/widgets/dialogs/IrcConnectionEditor.hpp \
     src/widgets/dialogs/LastRunCrashDialog.hpp \
     src/widgets/dialogs/LoginDialog.hpp \
-    src/widgets/dialogs/LogsPopup.hpp \
     src/widgets/dialogs/NotificationPopup.hpp \
     src/widgets/dialogs/QualityPopup.hpp \
     src/widgets/dialogs/SelectChannelDialog.hpp \

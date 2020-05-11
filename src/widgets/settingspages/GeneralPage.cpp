@@ -359,6 +359,8 @@ void GeneralPage::initLayout(SettingsLayout &layout)
     // layout.addCheckbox("Mark last message you read");
     // layout.addDropdown("Last read message style", {"Default"});
     layout.addCheckbox("Show deleted messages", s.hideModerated, true);
+    layout.addCheckbox("Highlight messages redeemed with Channel Points",
+                       s.enableRedeemedHighlight);
     layout.addDropdown<QString>(
         "Timestamps",
         {"Disable", "h:mm", "hh:mm", "h:mm a", "hh:mm a", "h:mm:ss", "hh:mm:ss",
@@ -521,6 +523,31 @@ void GeneralPage::initLayout(SettingsLayout &layout)
         },
         [](auto args) { return fuzzyToFloat(args.value, 63.f); });
     layout.addCheckbox("Show link info when hovering", s.linkInfoTooltip);
+    layout.addDropdown<int>(
+        "Show link thumbnail", {"Off", "Small", "Medium", "Large"},
+        s.thumbnailSize,
+        [](auto val) {
+            if (val == 0)
+                return QString("Off");
+            else if (val == 100)
+                return QString("Small");
+            else if (val == 200)
+                return QString("Medium");
+            else if (val == 300)
+                return QString("Large");
+            else
+                return QString::number(val);
+        },
+        [](auto args) {
+            if (args.value == "Small")
+                return 100;
+            else if (args.value == "Medium")
+                return 200;
+            else if (args.value == "Large")
+                return 300;
+
+            return fuzzyToInt(args.value, 0);
+        });
     layout.addCheckbox("Double click to open links and other elements in chat",
                        s.linksDoubleClickOnly);
     layout.addCheckbox("Unshorten links", s.unshortLinks);
@@ -545,6 +572,9 @@ void GeneralPage::initLayout(SettingsLayout &layout)
     layout.addCheckbox(
         "Hide viewercount and stream length while hovering the split",
         s.hideViewerCountAndDuration);
+    layout.addCheckbox(
+        "Ask for confirmation when uploading an image to i.nuuls.com",
+        s.askOnImageUpload);
 
     layout.addTitle("Cache");
     layout.addDescription(

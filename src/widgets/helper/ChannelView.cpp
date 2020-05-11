@@ -6,6 +6,7 @@
 #include <QGraphicsBlurEffect>
 #include <QMessageBox>
 #include <QPainter>
+#include <QScreen>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -25,6 +26,7 @@
 #include "messages/layouts/MessageLayoutElement.hpp"
 #include "providers/twitch/TwitchChannel.hpp"
 #include "providers/twitch/TwitchIrcServer.hpp"
+#include "singletons/Resources.hpp"
 #include "singletons/Settings.hpp"
 #include "singletons/Theme.hpp"
 #include "singletons/TooltipPreviewImage.hpp"
@@ -32,6 +34,7 @@
 #include "util/Clipboard.hpp"
 #include "util/DistanceBetweenPoints.hpp"
 #include "util/IncognitoBrowser.hpp"
+#include "util/Twitch.hpp"
 #include "widgets/Scrollbar.hpp"
 #include "widgets/TooltipWidget.hpp"
 #include "widgets/dialogs/UserInfoPopup.hpp"
@@ -114,6 +117,10 @@ ChannelView::ChannelView(BaseWidget *parent)
     this->initializeScrollbar();
     this->initializeSignals();
 
+    this->cursors_.neutral = QCursor(getResources().scrolling.neutralScroll);
+    this->cursors_.up = QCursor(getResources().scrolling.upScroll);
+    this->cursors_.down = QCursor(getResources().scrolling.downScroll);
+
     this->pauseTimer_.setSingleShot(true);
     QObject::connect(&this->pauseTimer_, &QTimer::timeout, this, [this] {
         /// remove elements that are finite
@@ -130,6 +137,10 @@ ChannelView::ChannelView(BaseWidget *parent)
     this->clickTimer_ = new QTimer(this);
     this->clickTimer_->setSingleShot(true);
     this->clickTimer_->setInterval(500);
+
+    this->scrollTimer_.setInterval(20);
+    QObject::connect(&this->scrollTimer_, &QTimer::timeout, this,
+                     &ChannelView::scrollUpdateRequested);
 
     this->setFocusPolicy(Qt::FocusPolicy::StrongFocus);
 }
@@ -309,7 +320,9 @@ void ChannelView::scaleChangedEvent(float scale)
     {
         auto factor = this->qtFontScale();
 #ifdef Q_OS_MACOS
-        factor = scale * 80.f / this->logicalDpiX() * this->devicePixelRatioF();
+        factor = scale * 80.f /
+                 std::max<float>(
+                     0.01, this->logicalDpiX() * this->devicePixelRatioF());
 #endif
         this->goToBottom_->getLabel().setFont(
             getFonts()->getFont(FontStyle::UiMedium, factor));
@@ -416,8 +429,9 @@ void ChannelView::updateScrollbar(
 
         if (h < 0)  // break condition
         {
-            this->scrollBar_->setLargeChange((messages.size() - i) +
-                                             qreal(h) / message->getHeight());
+            this->scrollBar_->setLargeChange(
+                (messages.size() - i) +
+                qreal(h) / std::max<int>(1, message->getHeight()));
 
             showScrollbar = true;
             break;
@@ -843,10 +857,10 @@ void ChannelView::paintEvent(QPaintEvent * /*event*/)
     // draw paused sign
     if (this->paused())
     {
-        auto a = this->scale() * 16;
-        auto brush = QBrush(QColor(127, 127, 127, 63));
-        painter.fillRect(QRectF(this->width() - a, a / 4, a / 4, a), brush);
-        painter.fillRect(QRectF(this->width() - a / 2, a / 4, a / 4, a), brush);
+        auto a = this->scale() * 20;
+        auto brush = QBrush(QColor(127, 127, 127, 255));
+        painter.fillRect(QRectF(5, a / 4, a / 4, a), brush);
+        painter.fillRect(QRectF(15, a / 4, a / 4, a), brush);
     }
 }
 
@@ -954,8 +968,8 @@ void ChannelView::wheelEvent(QWheelEvent *event)
         if (delta > 0)
         {
             qreal scrollFactor = fmod(desired, 1);
-            qreal currentScrollLeft =
-                int(scrollFactor * snapshot[i]->getHeight());
+            qreal currentScrollLeft = std::max<qreal>(
+                0.01, int(scrollFactor * snapshot[i]->getHeight()));
 
             for (; i >= 0; i--)
             {
@@ -987,8 +1001,8 @@ void ChannelView::wheelEvent(QWheelEvent *event)
         {
             delta = -delta;
             qreal scrollFactor = 1 - fmod(desired, 1);
-            qreal currentScrollLeft =
-                int(scrollFactor * snapshot[i]->getHeight());
+            qreal currentScrollLeft = std::max<qreal>(
+                0.01, int(scrollFactor * snapshot[i]->getHeight()));
 
             for (; i < snapshotLength; i++)
             {
@@ -1060,8 +1074,13 @@ void ChannelView::mouseMoveEvent(QMouseEvent *event)
         return;
     }
 
+    if (this->isScrolling_)
+    {
+        this->currentMousePosition_ = event->screenPos();
+    }
+
     // is selecting
-    if (this->isMouseDown_)
+    if (this->isLeftMouseDown_)
     {
         // this->pause(PauseReason::Selecting, 300);
         int index = layout->getSelectionIndex(relativePos);
@@ -1241,6 +1260,7 @@ void ChannelView::mouseMoveEvent(QMouseEvent *event)
     else
     {
         auto &tooltipPreviewImage = TooltipPreviewImage::instance();
+        tooltipPreviewImage.setImageScale(0, 0);
         auto emoteElement = dynamic_cast<const EmoteElement *>(
             &hoverLayoutElement->getCreator());
         auto badgeElement = dynamic_cast<const BadgeElement *>(
@@ -1270,7 +1290,22 @@ void ChannelView::mouseMoveEvent(QMouseEvent *event)
         }
         else
         {
-            tooltipPreviewImage.setImage(nullptr);
+            auto element = &hoverLayoutElement->getCreator();
+            auto thumbnailSize = getSettings()->thumbnailSize;
+            if (thumbnailSize == 0)
+            {
+                tooltipPreviewImage.setImage(nullptr);
+            }
+            else
+            {
+                tooltipPreviewImage.setImage(element->getThumbnail());
+                if (element->getThumbnailType() ==
+                    MessageElement::ThumbnailType::Link_Thumbnail)
+                {
+                    tooltipPreviewImage.setImageScale(thumbnailSize,
+                                                      thumbnailSize);
+                }
+            }
         }
 
         tooltipWidget->moveTo(this, event->globalPos());
@@ -1326,8 +1361,11 @@ void ChannelView::mousePressEvent(QMouseEvent *event)
     switch (event->button())
     {
         case Qt::LeftButton: {
-            this->lastPressPosition_ = event->screenPos();
-            this->isMouseDown_ = true;
+            if (this->isScrolling_)
+                this->disableScrolling();
+
+            this->lastLeftPressPosition_ = event->screenPos();
+            this->isLeftMouseDown_ = true;
 
             if (layout->flags.has(MessageLayoutFlag::Collapsed))
                 return;
@@ -1344,8 +1382,35 @@ void ChannelView::mousePressEvent(QMouseEvent *event)
         break;
 
         case Qt::RightButton: {
+            if (this->isScrolling_)
+                this->disableScrolling();
+
             this->lastRightPressPosition_ = event->screenPos();
             this->isRightMouseDown_ = true;
+        }
+        break;
+
+        case Qt::MiddleButton: {
+            const MessageLayoutElement *hoverLayoutElement =
+                layout->getElementAt(relativePos);
+
+            if (hoverLayoutElement != nullptr &&
+                hoverLayoutElement->getLink().isUrl() &&
+                this->isScrolling_ == false)
+            {
+                break;
+            }
+            else
+            {
+                if (this->isScrolling_)
+                    this->disableScrolling();
+                else if (hoverLayoutElement != nullptr &&
+                         hoverLayoutElement->getFlags().has(
+                             MessageElementFlag::Username))
+                    break;
+                else
+                    this->enableScrolling(event->screenPos());
+            }
         }
         break;
 
@@ -1357,6 +1422,16 @@ void ChannelView::mousePressEvent(QMouseEvent *event)
 
 void ChannelView::mouseReleaseEvent(QMouseEvent *event)
 {
+    // find message
+    this->queueLayout();
+
+    std::shared_ptr<MessageLayout> layout;
+    QPoint relativePos;
+    int messageIndex;
+
+    bool foundElement =
+        tryGetMessageAt(event->pos(), layout, relativePos, messageIndex);
+
     // check if mouse was pressed
     if (event->button() == Qt::LeftButton)
     {
@@ -1373,11 +1448,11 @@ void ChannelView::mouseReleaseEvent(QMouseEvent *event)
                 return;
             }
         }
-        else if (this->isMouseDown_)
+        else if (this->isLeftMouseDown_)
         {
-            this->isMouseDown_ = false;
+            this->isLeftMouseDown_ = false;
 
-            if (fabsf(distanceBetweenPoints(this->lastPressPosition_,
+            if (fabsf(distanceBetweenPoints(this->lastLeftPressPosition_,
                                             event->screenPos())) > 15.f)
             {
                 return;
@@ -1405,20 +1480,47 @@ void ChannelView::mouseReleaseEvent(QMouseEvent *event)
             return;
         }
     }
+    else if (event->button() == Qt::MiddleButton)
+    {
+        if (this->isScrolling_)
+        {
+            if (event->screenPos() == this->lastMiddlePressPosition_)
+                this->enableScrolling(event->screenPos());
+            else
+                this->disableScrolling();
+
+            return;
+        }
+        else if (foundElement)
+        {
+            const MessageLayoutElement *hoverLayoutElement =
+                layout->getElementAt(relativePos);
+
+            if (hoverLayoutElement == nullptr)
+            {
+                return;
+            }
+            else if (hoverLayoutElement->getFlags().has(
+                         MessageElementFlag::Username))
+            {
+                openTwitchUsercard(this->channel_->getName(),
+                                   hoverLayoutElement->getLink().value);
+                return;
+            }
+            else if (hoverLayoutElement->getLink().isUrl() == false)
+            {
+                return;
+            }
+        }
+    }
     else
     {
         // not left or right button
         return;
     }
-    // find message
-    this->queueLayout();
-
-    std::shared_ptr<MessageLayout> layout;
-    QPoint relativePos;
-    int messageIndex;
 
     // no message found
-    if (!tryGetMessageAt(event->pos(), layout, relativePos, messageIndex))
+    if (!foundElement)
     {
         // No message at clicked position
         return;
@@ -1506,6 +1608,14 @@ void ChannelView::handleMouseClick(QMouseEvent *event,
             else
             {
                 this->addContextMenuItems(hoveredElement, layout);
+            }
+        }
+        break;
+        case Qt::MiddleButton: {
+            auto &link = hoveredElement->getLink();
+            if (!getSettings()->linksDoubleClickOnly)
+            {
+                this->handleLinkClick(event, link, layout);
             }
         }
         break;
@@ -1638,7 +1748,7 @@ void ChannelView::mouseDoubleClickEvent(QMouseEvent *event)
         return;
     }
 
-    if (!this->isMouseDown_)
+    if (!this->isLeftMouseDown_)
     {
         this->isDoubleClick_ = true;
 
@@ -1691,7 +1801,8 @@ void ChannelView::showUserInfoPopup(const QString &userName)
 void ChannelView::handleLinkClick(QMouseEvent *event, const Link &link,
                                   MessageLayout *layout)
 {
-    if (event->button() != Qt::LeftButton)
+    if (event->button() != Qt::LeftButton &&
+        event->button() != Qt::MiddleButton)
     {
         return;
     }
@@ -1801,6 +1912,61 @@ void ChannelView::getWordBounds(MessageLayout *layout,
     const int length =
         element->hasTrailingSpace() ? selectionLength - 1 : selectionLength;
     wordEnd = wordStart + length;
+}
+
+void ChannelView::enableScrolling(const QPointF &scrollStart)
+{
+    this->isScrolling_ = true;
+    this->lastMiddlePressPosition_ = scrollStart;
+    // The line below prevents a sudden jerk at the beginning
+    this->currentMousePosition_ = scrollStart;
+
+    this->scrollTimer_.start();
+
+    if (!QGuiApplication::overrideCursor())
+        QGuiApplication::setOverrideCursor(this->cursors_.neutral);
+}
+
+void ChannelView::disableScrolling()
+{
+    this->isScrolling_ = false;
+    this->scrollTimer_.stop();
+    QGuiApplication::restoreOverrideCursor();
+}
+
+void ChannelView::scrollUpdateRequested()
+{
+    const qreal dpi =
+        QGuiApplication::screenAt(this->pos())->devicePixelRatio();
+    const qreal delta = dpi * (this->currentMousePosition_.y() -
+                               this->lastMiddlePressPosition_.y());
+    const int cursorHeight = this->cursors_.neutral.pixmap().height();
+
+    if (fabs(delta) <= cursorHeight * dpi)
+    {
+        /*
+         * If within an area close to the initial position, don't do any
+         * scrolling at all.
+         */
+        QGuiApplication::changeOverrideCursor(this->cursors_.neutral);
+        return;
+    }
+
+    qreal offset;
+    if (delta > 0)
+    {
+        QGuiApplication::changeOverrideCursor(this->cursors_.down);
+        offset = delta - cursorHeight;
+    }
+    else
+    {
+        QGuiApplication::changeOverrideCursor(this->cursors_.up);
+        offset = delta + cursorHeight;
+    }
+
+    // "Good" feeling multiplier found by trial-and-error
+    const qreal multiplier = qreal(0.02);
+    this->scrollBar_->offset(multiplier * offset);
 }
 
 }  // namespace chatterino
