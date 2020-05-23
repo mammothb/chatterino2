@@ -49,11 +49,13 @@ void addPhrasesTab(LayoutCreator<QVBoxLayout> layout)
                     ->initialized(&getSettings()->ignoredMessages))
             .getElement();
     view->setTitles(
-        {"Pattern", "Regex", "Case Sensitive", "Block", "Replacement"});
+        {"Pattern", "User", "Regex", "Case Sensitive", "Block", "Replacement"});
     view->getTableView()->horizontalHeader()->setSectionResizeMode(
         QHeaderView::Fixed);
     view->getTableView()->horizontalHeader()->setSectionResizeMode(
         0, QHeaderView::Stretch);
+    view->getTableView()->horizontalHeader()->setSectionResizeMode(
+        1, QHeaderView::Stretch);
     view->addRegexHelpLink();
 
     QTimer::singleShot(1, [view] {
@@ -63,7 +65,7 @@ void addPhrasesTab(LayoutCreator<QVBoxLayout> layout)
 
     view->addButtonPressed.connect([] {
         getSettings()->ignoredMessages.append(
-            IgnorePhrase{"my pattern", false, false,
+            IgnorePhrase{"my phrase", "user", false, false,
                          getSettings()->ignoredPhraseReplace.getValue(), true});
     });
 }
