@@ -23,15 +23,14 @@
 #include <QFile>
 #include <QRegularExpression>
 
-#include <cstdlib>
-
-#define TWITCH_DEFAULT_COMMANDS                                         \
-    {                                                                   \
-        "/help", "/w", "/me", "/disconnect", "/mods", "/color", "/ban", \
-            "/unban", "/timeout", "/untimeout", "/slow", "/slowoff",    \
-            "/r9kbeta", "/r9kbetaoff", "/emoteonly", "/emoteonlyoff",   \
-            "/clear", "/subscribers", "/subscribersoff", "/followers",  \
-            "/followersoff", "/user"                                    \
+#define TWITCH_DEFAULT_COMMANDS                                            \
+    {                                                                      \
+        "/help", "/w", "/me", "/disconnect", "/mods", "/color", "/ban",    \
+            "/unban", "/timeout", "/untimeout", "/slow", "/slowoff",       \
+            "/r9kbeta", "/r9kbetaoff", "/emoteonly", "/emoteonlyoff",      \
+            "/clear", "/subscribers", "/subscribersoff", "/followers",     \
+            "/followersoff", "/user", "/usercard", "/follow", "/unfollow", \
+            "/ignore", "/unignore"                                         \
     }
 
 namespace {
@@ -454,7 +453,6 @@ QString CommandController::execCommand(const QString &textNoEmoji,
             }
             auto *userPopup = new UserInfoPopup;
             userPopup->setData(words[1], channel);
-            userPopup->setActionOnFocusLoss(BaseWindow::Delete);
             userPopup->move(QCursor::pos());
             userPopup->show();
             return "";
