@@ -467,6 +467,9 @@ void ChannelView::clearMessages()
     this->messages_.clear();
     this->scrollBar_->clearHighlights();
     this->queueLayout();
+
+    this->lastMessageHasAlternateBackground_ = false;
+    this->lastMessageHasAlternateBackgroundReverse_ = true;
 }
 
 Scrollbar &ChannelView::getScrollBar()
@@ -1645,10 +1648,15 @@ void ChannelView::addContextMenuItems(
     const auto &creator = hoveredElement->getCreator();
     auto creatorFlags = creator.getFlags();
 
+    static QMenu *previousMenu = nullptr;
+    if (previousMenu != nullptr)
+    {
+        previousMenu->deleteLater();
+        previousMenu = nullptr;
+    }
+
     auto menu = new QMenu;
-    connect(menu, &QMenu::aboutToHide, [menu] {
-        menu->deleteLater();  //
-    });
+    previousMenu = menu;
 
     // Emote actions
     if (creatorFlags.hasAny(

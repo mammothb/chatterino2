@@ -23,6 +23,9 @@
 #include <QFile>
 #include <QRegularExpression>
 
+#include <cstdlib>
+
+
 #define TWITCH_DEFAULT_COMMANDS                                            \
     {                                                                      \
         "/help", "/w", "/me", "/disconnect", "/mods", "/color", "/ban",    \
