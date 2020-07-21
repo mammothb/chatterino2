@@ -3,7 +3,7 @@ Below I have tried to list all environment variables that can be used to modify 
 
 ### CHATTERINO2_RECENT_MESSAGES_URL
 Used to change the URL that Chatterino2 uses when trying to load historic Twitch chat messages (if the setting is enabled).  
-Default value: `https://recent-messages.robotty.de/api/v2/recent-messages/%1?clearchatToNotice=true` (an [open-source service](https://github.com/robotty/recent-messages) written and currently run by [@RAnders00](https://github.com/RAnders00))  
+Default value: `https://recent-messages.robotty.de/api/v2/recent-messages/%1` (an [open-source service](https://github.com/robotty/recent-messages) written and currently run by [@RAnders00](https://github.com/RAnders00))  
 Arguments:  
  - `%1` = Name of the Twitch channel
 
@@ -18,21 +18,6 @@ Used to change the URL that Chatterino2 uses when trying to get emote set inform
 Default value: `https://braize.pajlada.com/chatterino/twitchemotes/set/%1/`  
 Arguments:  
  - `%1` = Emote set ID
-
-### CHATTERINO2_IMAGE_UPLOADER_URL
-Used to change the URL that Chatterino2 uses when trying to paste an image into chat. This can be used for hosting the uploaded images yourself.  
-Default value: `https://i.nuuls.com/upload`
-
-Arguments:
- - None
-
-Notes:
- - If you want to host the images yourself. You need [Nuuls' filehost software](https://github.com/nuuls/filehost)
- - Other image hosting software is currently not supported.
-
-### CHATTERINO2_IMAGE_UPLOADER_FORM_BODY
-Used to change the name of an image form field in a request to the URL that Chatterino2 uses when trying to paste an image into chat. This can be used when your image uploading software accepts a different form field than default value.  
-Default value: `attachment`
 
 ### CHATTERINO2_TWITCH_SERVER_HOST
 String value used to change what Twitch chat server host to connect to.  

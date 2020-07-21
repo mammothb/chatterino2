@@ -307,7 +307,7 @@ void GeneralPage::initLayout(SettingsLayout &layout)
     layout.addCheckbox("Restart on crash", s.restartOnCrash);
     if (!BaseWindow::supportsCustomWindowFrame())
     {
-        layout.addCheckbox("Show preferences button (ctrl+p to show)",
+        layout.addCheckbox("Show preferences button (Ctrl+P to show)",
                            s.hidePreferencesButton, true);
         layout.addCheckbox("Show user button", s.hideUserButton, true);
     }
@@ -354,7 +354,7 @@ void GeneralPage::initLayout(SettingsLayout &layout)
     layout.addCheckbox("Show message length while typing", s.showMessageLength);
 
     layout.addTitle("Messages");
-    layout.addCheckbox("Seperate with lines", s.separateMessages);
+    layout.addCheckbox("Separate with lines", s.separateMessages);
     layout.addCheckbox("Alternate background color", s.alternateMessages);
     // layout.addCheckbox("Mark last message you read");
     // layout.addDropdown("Last read message style", {"Default"});
@@ -513,6 +513,8 @@ void GeneralPage::initLayout(SettingsLayout &layout)
     layout.addCheckbox("Show parted users (< 1000 chatters)", s.showParts);
     layout.addCheckbox("Lowercase domains (anti-phishing)", s.lowercaseDomains);
     layout.addCheckbox("Bold @usernames", s.boldUsernames);
+    layout.addCheckbox("Try to find usernames without @ prefix",
+                       s.findAllUsernames);
     layout.addDropdown<float>(
         "Username font weight", {"50", "Default", "75", "100"}, s.boldScale,
         [](auto val) {

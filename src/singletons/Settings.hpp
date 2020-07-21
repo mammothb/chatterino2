@@ -96,6 +96,8 @@ public:
     BoolSetting enableSmoothScrollingNewMessages = {
         "/appearance/smoothScrollingNewMessages", false};
     BoolSetting boldUsernames = {"/appearance/messages/boldUsernames", false};
+    BoolSetting findAllUsernames = {"/appearance/messages/findAllUsernames",
+                                    false};
     // BoolSetting customizable splitheader
     BoolSetting headerViewerCount = {"/appearance/splitheader/showViewerCount",
                                      false};
@@ -274,6 +276,17 @@ public:
 
     // Custom URI Scheme
     QStringSetting customURIScheme = {"/external/urischeme"};
+
+    // Image Uploader
+    QStringSetting imageUploaderUrl = {"/external/imageUploader/url",
+                                       "https://i.nuuls.com/upload"};
+    QStringSetting imageUploaderFormField = {
+        "/external/imageUploader/formField", "attachment"};
+    QStringSetting imageUploaderHeaders = {"/external/imageUploader/headers",
+                                           ""};
+    QStringSetting imageUploaderLink = {"/external/imageUploader/link", ""};
+    QStringSetting imageUploaderDeletionLink = {
+        "/external/imageUploader/deletionLink", ""};
 
     /// Misc
     BoolSetting betaUpdates = {"/misc/beta", false};

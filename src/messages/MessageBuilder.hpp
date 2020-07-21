@@ -22,6 +22,7 @@ const SystemMessageTag systemMessage{};
 const TimeoutMessageTag timeoutMessage{};
 
 MessagePtr makeSystemMessage(const QString &text);
+MessagePtr makeSystemMessage(const QString &text, const QTime &time);
 std::pair<MessagePtr, MessagePtr> makeAutomodMessage(
     const AutomodAction &action);
 
@@ -34,11 +35,13 @@ struct MessageParseArgs {
 };
 
 class MessageBuilder
-
 {
 public:
     MessageBuilder();
-    MessageBuilder(SystemMessageTag, const QString &text);
+    MessageBuilder(SystemMessageTag, const QString &text,
+                   const QTime &time = QTime::currentTime());
+    MessageBuilder(TimeoutMessageTag, const QString &systemMessageText,
+                   int times);
     MessageBuilder(TimeoutMessageTag, const QString &username,
                    const QString &durationInSeconds, const QString &reason,
                    bool multipleTimes);
@@ -68,6 +71,13 @@ public:
     }
 
 private:
+    // Helper method that emplaces some text stylized as system text
+    // and then appends that text to the QString parameter "toUpdate".
+    // Returns the TextElement that was emplaced.
+    TextElement *emplaceSystemTextAndUpdate(const QString &text,
+                                            QString &toUpdate);
+
     std::shared_ptr<Message> message_;
 };
+
 }  // namespace chatterino
