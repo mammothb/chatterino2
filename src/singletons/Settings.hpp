@@ -9,6 +9,7 @@
 #include "controllers/highlights/HighlightPhrase.hpp"
 #include "controllers/moderationactions/ModerationAction.hpp"
 #include "singletons/Toasts.hpp"
+#include "widgets/Notebook.hpp"
 
 namespace chatterino {
 
@@ -80,6 +81,9 @@ public:
     BoolSetting hideNicknameColors = {"/appearance/messages/hideNicknameColors",
                                       false};
 
+    IntSetting tabDirection = {"/appearance/tabDirection",
+                               NotebookTabDirection::Horizontal};
+
     //    BoolSetting collapseLongMessages =
     //    {"/appearance/messages/collapseLongMessages", false};
     IntSetting collpseMessagesMinLines = {
@@ -128,6 +132,7 @@ public:
     BoolSetting showParts = {"/behaviour/showParts", false};
     FloatSetting mouseScrollMultiplier = {"/behaviour/mouseScrollMultiplier",
                                           1.0};
+    BoolSetting autoCloseUserPopup = {"/behaviour/autoCloseUserPopup", true};
     // BoolSetting twitchSeperateWriteConnection =
     // {"/behaviour/twitchSeperateWriteConnection", false};
 
@@ -299,7 +304,7 @@ public:
     QStringSetting currentVersion = {"/misc/currentVersion", ""};
     BoolSetting loadTwitchMessageHistoryOnConnect = {
         "/misc/twitch/loadMessageHistoryOnConnect", true};
-    IntSetting emotesTooltipPreview = {"/misc/emotesTooltipPreview", 0};
+    IntSetting emotesTooltipPreview = {"/misc/emotesTooltipPreview", 1};
     BoolSetting openLinksIncognito = {"/misc/openLinksIncognito", 0};
 
     QStringSetting cachePath = {"/cache/path", ""};
