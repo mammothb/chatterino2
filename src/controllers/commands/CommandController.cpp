@@ -454,7 +454,7 @@ QString CommandController::execCommand(const QString &textNoEmoji,
                     makeSystemMessage("Usage /usercard [user]"));
                 return "";
             }
-            auto *userPopup = new UserInfoPopup;
+            auto *userPopup = new UserInfoPopup(false);
             userPopup->setData(words[1], channel);
             userPopup->move(QCursor::pos());
             userPopup->show();
