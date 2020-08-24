@@ -188,11 +188,12 @@ void CompletionModel::refresh(const QString &prefix, bool isFirstWord)
             addString(command, TaggedString::Command);
         }
 
-        for (const auto& it : getSettings()->ignoredEmotes) {
+        for (const auto& it : getSettings()->ignoredEmotes)
+        {
             // The emote type is ignored since we're only matching by
             // emote name
-            auto emote = TaggedString(it + " ",
-                                      TaggedString::Type::TwitchGlobalEmote);
+            auto emote =
+                TaggedString(it + " ", TaggedString::Type::TwitchGlobalEmote);
             auto item = this->items_.find(emote);
 
             if (item != this->items_.end())
