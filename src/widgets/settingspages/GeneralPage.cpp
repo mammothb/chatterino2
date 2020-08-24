@@ -476,6 +476,8 @@ void GeneralPage::initLayout(SettingsLayout &layout)
                        s.animationsWhenFocused);
     layout.addCheckbox("Use compact emotes", s.compactEmotes);
     layout.addCheckbox("Stack bits", s.stackBits);
+    layout.addCheckbox("Enable emote auto-completion by typing :",
+                       s.emoteCompletionWithColon);
     layout.addDropdown<float>(
         "Size", {"0.5x", "0.75x", "Default", "1.25x", "1.5x", "2x"},
         s.emoteScale,
