@@ -188,7 +188,7 @@ void CompletionModel::refresh(const QString &prefix, bool isFirstWord)
             addString(command, TaggedString::Command);
         }
 
-        for (const auto& it : getSettings()->ignoredEmotes)
+        for (const auto &it : getSettings()->ignoredEmotes)
         {
             // The emote type is ignored since we're only matching by
             // emote name
