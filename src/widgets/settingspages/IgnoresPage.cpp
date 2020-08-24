@@ -3,6 +3,7 @@
 #include "Application.hpp"
 #include "controllers/accounts/AccountController.hpp"
 #include "controllers/ignores/IgnoreController.hpp"
+#include "controllers/ignores/IgnoreEmoteModel.hpp"
 #include "controllers/ignores/IgnoreModel.hpp"
 #include "providers/twitch/TwitchAccount.hpp"
 #include "singletons/Settings.hpp"
@@ -24,6 +25,7 @@
 
 namespace chatterino {
 
+static void addEmotesTab(LayoutCreator<QVBoxLayout> box);
 static void addPhrasesTab(LayoutCreator<QVBoxLayout> box);
 static void addUsersTab(IgnoresPage &page, LayoutCreator<QVBoxLayout> box,
                         QStringListModel &model);
@@ -37,6 +39,32 @@ IgnoresPage::IgnoresPage()
     addPhrasesTab(tabs.appendTab(new QVBoxLayout, "Messages"));
     addUsersTab(*this, tabs.appendTab(new QVBoxLayout, "Users"),
                 this->userListModel_);
+    addEmotesTab(tabs.appendTab(new QVBoxLayout, "Emotes"));
+}
+
+void addEmotesTab(LayoutCreator<QVBoxLayout> layout)
+{
+    layout.emplace<QLabel>("Ignore specified emotes from autocompletion.");
+    EditableModelView *view =
+        layout
+            .emplace<EditableModelView>(
+                (new IgnoreEmoteModel(nullptr))
+                    ->initialized(&getSettings()->ignoredEmotes))
+            .getElement();
+    view->setTitles({"Emote Name"});
+    view->getTableView()->horizontalHeader()->setSectionResizeMode(
+        QHeaderView::Fixed);
+    view->getTableView()->horizontalHeader()->setSectionResizeMode(
+        0, QHeaderView::Stretch);
+    view->addRegexHelpLink();
+
+    QTimer::singleShot(1, [view] {
+        view->getTableView()->resizeColumnsToContents();
+        view->getTableView()->setColumnWidth(0, 200);
+    });
+
+    view->addButtonPressed.connect(
+        [] { getSettings()->ignoredEmotes.append(QString("emote name")); });
 }
 
 void addPhrasesTab(LayoutCreator<QVBoxLayout> layout)
