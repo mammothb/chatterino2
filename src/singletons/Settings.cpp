@@ -19,6 +19,7 @@ ConcurrentSettings::ConcurrentSettings()
     : highlightedMessages(*new SignalVector<HighlightPhrase>())
     , highlightedUsers(*new SignalVector<HighlightPhrase>())
     , blacklistedUsers(*new SignalVector<HighlightBlacklistUser>())
+    , ignoredEmotes(*new SignalVector<QString>())
     , ignoredMessages(*new SignalVector<IgnorePhrase>())
     , mutedChannels(*new SignalVector<QString>())
     , moderationActions(*new SignalVector<ModerationAction>)
@@ -26,6 +27,7 @@ ConcurrentSettings::ConcurrentSettings()
     persist(this->highlightedMessages, "/highlighting/highlights");
     persist(this->blacklistedUsers, "/highlighting/blacklist");
     persist(this->highlightedUsers, "/highlighting/users");
+    persist(this->ignoredEmotes, "/ignore/emotes");
     persist(this->ignoredMessages, "/ignore/phrases");
     persist(this->mutedChannels, "/pings/muted");
     // tagged users?

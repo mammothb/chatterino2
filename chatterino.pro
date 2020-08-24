@@ -134,6 +134,7 @@ SOURCES += \
     src/controllers/highlights/HighlightModel.cpp \
     src/controllers/highlights/HighlightPhrase.cpp \
     src/controllers/highlights/UserHighlightModel.cpp \
+    src/controllers/ignores/IgnoreEmoteModel.cpp \
     src/controllers/ignores/IgnoreModel.cpp \
     src/controllers/moderationactions/ModerationAction.cpp \
     src/controllers/moderationactions/ModerationActionModel.cpp \
@@ -340,6 +341,7 @@ HEADERS += \
     src/controllers/highlights/HighlightPhrase.hpp \
     src/controllers/highlights/UserHighlightModel.hpp \
     src/controllers/ignores/IgnoreController.hpp \
+    src/controllers/ignores/IgnoreEmoteModel.hpp \
     src/controllers/ignores/IgnoreModel.hpp \
     src/controllers/ignores/IgnorePhrase.hpp \
     src/controllers/moderationactions/ModerationAction.hpp \

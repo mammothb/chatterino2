@@ -41,6 +41,11 @@ bool CompletionModel::TaggedString::operator<(const TaggedString &that) const
     return CompletionModel::compareStrings(this->string, that.string);
 }
 
+bool CompletionModel::TaggedString::operator==(const TaggedString &that) const
+{
+    return QString::compare(this->string, that.string) == 0;
+}
+
 //
 // CompletionModel
 //
@@ -181,6 +186,19 @@ void CompletionModel::refresh(const QString &prefix, bool isFirstWord)
         for (auto &command : getApp()->commands->getDefaultTwitchCommandList())
         {
             addString(command, TaggedString::Command);
+        }
+
+        for (const auto& it : getSettings()->ignoredEmotes) {
+            // The emote type is ignored since we're only matching by
+            // emote name
+            auto emote = TaggedString(it + " ",
+                                      TaggedString::Type::TwitchGlobalEmote);
+            auto item = this->items_.find(emote);
+
+            if (item != this->items_.end())
+            {
+                this->items_.erase(item);
+            }
         }
     }
 }

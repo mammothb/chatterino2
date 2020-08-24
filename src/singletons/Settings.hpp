@@ -27,6 +27,7 @@ public:
     SignalVector<HighlightPhrase> &highlightedMessages;
     SignalVector<HighlightPhrase> &highlightedUsers;
     SignalVector<HighlightBlacklistUser> &blacklistedUsers;
+    SignalVector<QString> &ignoredEmotes;
     SignalVector<IgnorePhrase> &ignoredMessages;
     SignalVector<QString> &mutedChannels;
     //SignalVector<TaggedUser> &taggedUsers;

@@ -35,6 +35,7 @@ class CompletionModel : public QAbstractListModel
 
         bool isEmote() const;
         bool operator<(const TaggedString &that) const;
+        bool operator==(const TaggedString &that) const;
 
         QString string;
         Type type;
