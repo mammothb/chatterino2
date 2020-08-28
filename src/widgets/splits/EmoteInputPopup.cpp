@@ -8,6 +8,7 @@
 #include "providers/twitch/TwitchChannel.hpp"
 #include "providers/twitch/TwitchIrcServer.hpp"
 #include "singletons/Emotes.hpp"
+#include "singletons/Settings.hpp"
 #include "util/LayoutCreator.hpp"
 #include "widgets/listview/GenericListView.hpp"
 #include "widgets/splits/EmoteInputItem.hpp"
@@ -19,6 +20,11 @@ namespace {
         EmotePtr emote;
         QString displayName;
         QString providerName;
+
+        bool operator==(const _Emote &that) const
+        {
+            return QString::compare(this->displayName, that.displayName) == 0;
+        }
     };
 
     void addEmotes(std::vector<_Emote> &out, const EmoteMap &map,
@@ -93,6 +99,19 @@ void EmoteInputPopup::updateEmotes(const QString &text, ChannelPtr channel)
             addEmotes(emotes, *ffzG, text, "Global FrankerFaceZ");
 
         addEmojis(emotes, getApp()->emotes->emojis.emojis, text);
+    }
+
+    for (const auto &it : getSettings()->ignoredEmotes)
+    {
+        // nullptr for emote and empty string for provider since we're
+        // only comparing the emote name
+        auto emote = _Emote({nullptr, it, ""});
+        auto item = std::find(emotes.begin(), emotes.end(), emote);
+
+        if (item != emotes.end())
+        {
+            emotes.erase(item);
+        }
     }
 
     // if there is an exact match, put that emote first
