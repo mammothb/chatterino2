@@ -1,5 +1,6 @@
 #include "widgets/splits/Split.hpp"
 
+#include "Application.hpp"
 #include "common/Common.hpp"
 #include "common/Env.hpp"
 #include "common/NetworkRequest.hpp"
@@ -8,6 +9,7 @@
 #include "providers/twitch/TwitchChannel.hpp"
 #include "providers/twitch/TwitchIrcServer.hpp"
 #include "providers/twitch/TwitchMessageBuilder.hpp"
+#include "singletons/Fonts.hpp"
 #include "singletons/Settings.hpp"
 #include "singletons/Theme.hpp"
 #include "singletons/WindowManager.hpp"
@@ -20,6 +22,7 @@
 #include "widgets/Window.hpp"
 #include "widgets/dialogs/QualityPopup.hpp"
 #include "widgets/dialogs/SelectChannelDialog.hpp"
+#include "widgets/dialogs/SelectChannelFiltersDialog.hpp"
 #include "widgets/dialogs/TextInputDialog.hpp"
 #include "widgets/dialogs/UserInfoPopup.hpp"
 #include "widgets/helper/ChannelView.hpp"
@@ -55,7 +58,7 @@ namespace {
                            const QString &title, const QString &description)
     {
         auto window =
-            new BaseWindow(BaseWindow::Flags::EnableCustomFrame, parent);
+            new BasePopup(BaseWindow::Flags::EnableCustomFrame, parent);
         window->setWindowTitle("Chatterino - " + title);
         window->setAttribute(Qt::WA_DeleteOnClose);
         auto layout = new QVBoxLayout();
@@ -118,6 +121,7 @@ Split::Split(QWidget *parent)
     createShortcut(this, "F10", [] {
         auto *popup = new DebugPopup;
         popup->setAttribute(Qt::WA_DeleteOnClose);
+        popup->setWindowTitle("Chatterino - Debug popup");
         popup->show();
     });
 
@@ -128,6 +132,11 @@ Split::Split(QWidget *parent)
     // CreateShortcut(this, "ALT+SHIFT+DOWN", &Split::doDecFlexY);
 
     this->input_->ui_.textEdit->installEventFilter(parent);
+
+    this->signalHolder_.managedConnect(
+        getApp()->accounts->twitch.currentUserChanged,
+        [this] { this->onAccountSelected(); });
+    this->onAccountSelected();
 
     this->view_->mouseDown.connect([this](QMouseEvent *) {  //
         this->giveFocus(Qt::MouseFocusReason);
@@ -272,6 +281,25 @@ void Split::setContainer(SplitContainer *container)
     this->container_ = container;
 }
 
+void Split::onAccountSelected()
+{
+    auto user = getApp()->accounts->twitch.getCurrent();
+    QString placeholderText;
+
+    if (user->isAnon())
+    {
+        placeholderText = "Log in to send messages...";
+    }
+    else
+    {
+        placeholderText =
+            QString("Send message as %1...")
+                .arg(getApp()->accounts->twitch.getCurrent()->getUserName());
+    }
+
+    this->input_->ui_.textEdit->setPlaceholderText(placeholderText);
+}
+
 IndirectChannel Split::getIndirectChannel()
 {
     return this->channel_;
@@ -313,6 +341,15 @@ void Split::setChannel(IndirectChannel newChannel)
     this->header_->updateModerationModeIcon();
     this->header_->updateChannelText();
     this->header_->updateRoomModes();
+
+    if (newChannel.getType() == Channel::Type::Twitch)
+    {
+        this->header_->setViewersButtonVisible(true);
+    }
+    else
+    {
+        this->header_->setViewersButtonVisible(false);
+    }
 
     this->channelChanged.invoke();
 
@@ -599,7 +636,8 @@ void Split::openWithCustomScheme()
 
 void Split::showViewerList()
 {
-    auto viewerDock = new QDockWidget("Viewer List", this);
+    auto viewerDock =
+        new QDockWidget("Viewer List - " + this->getChannel()->getName(), this);
     viewerDock->setAllowedAreas(Qt::LeftDockWidgetArea);
     viewerDock->setFeatures(QDockWidget::DockWidgetVerticalTitleBar |
                             QDockWidget::DockWidgetClosable |
@@ -616,17 +654,24 @@ void Split::showViewerList()
     auto chattersList = new QListWidget();
     auto resultList = new QListWidget();
 
-    static QStringList labels = {"Broadcaster", "VIPs",   "Moderators",
-                                 "Staff",       "Admins", "Global Moderators",
-                                 "Viewers"};
-    static QStringList jsonLabels = {"broadcaster", "vips",   "moderators",
-                                     "staff",       "admins", "global_mods",
+    auto formatListItemText = [](QString text) {
+        auto item = new QListWidgetItem();
+        item->setText(text);
+        item->setFont(getApp()->fonts->getFont(FontStyle::ChatMedium, 1.0));
+        return item;
+    };
+
+    static QStringList labels = {
+        "Broadcaster", "Moderators",        "VIPs",   "Staff",
+        "Admins",      "Global Moderators", "Viewers"};
+    static QStringList jsonLabels = {"broadcaster", "moderators", "vips",
+                                     "staff",       "admins",     "global_mods",
                                      "viewers"};
     QList<QListWidgetItem *> labelList;
     for (auto &x : labels)
     {
-        auto label = new QListWidgetItem(x);
-        label->setBackgroundColor(this->theme->splits.header.background);
+        auto label = formatListItemText(x);
+        label->setForeground(this->theme->accent);
         labelList.append(label);
     }
     auto loadingLabel = new QLabel("Loading...");
@@ -650,7 +695,10 @@ void Split::showViewerList()
 
                 chattersList->addItem(labelList.at(i));
                 foreach (const QJsonValue &v, currentCategory)
-                    chattersList->addItem(v.toString());
+                {
+                    chattersList->addItem(formatListItemText(v.toString()));
+                }
+                chattersList->addItem(new QListWidgetItem());
             }
 
             return Success;
@@ -668,7 +716,9 @@ void Split::showViewerList()
             for (auto &item : results)
             {
                 if (!labels.contains(item->text()))
-                    resultList->addItem(item->text());
+                {
+                    resultList->addItem(formatListItemText(item->text()));
+                }
             }
             resultList->show();
         }
@@ -683,7 +733,7 @@ void Split::showViewerList()
                      [=]() { viewerDock->setMinimumWidth(300); });
 
     auto listDoubleClick = [=](QString userName) {
-        if (!labels.contains(userName))
+        if (!labels.contains(userName) && !userName.isEmpty())
         {
             this->view_->showUserInfoPopup(userName);
         }
@@ -726,10 +776,33 @@ void Split::copyToClipboard()
     crossPlatformCopy(this->view_->getSelectedText());
 }
 
+void Split::setFiltersDialog()
+{
+    SelectChannelFiltersDialog d(this->getFilters(), this);
+    d.setWindowTitle("Select filters");
+
+    if (d.exec() == QDialog::Accepted)
+    {
+        this->setFilters(d.getSelection());
+    }
+}
+
+void Split::setFilters(const QList<QUuid> ids)
+{
+    this->view_->setFilters(ids);
+    this->header_->updateChannelText();
+}
+
+const QList<QUuid> Split::getFilters() const
+{
+    return this->view_->getFilterIds();
+}
+
 void Split::showSearch()
 {
     SearchPopup *popup = new SearchPopup();
 
+    popup->setChannelFilters(this->view_->getFilterSet());
     popup->setAttribute(Qt::WA_DeleteOnClose);
     popup->setChannel(this->getChannel());
     popup->show();

@@ -7,6 +7,7 @@
 #include "providers/twitch/TwitchCommon.hpp"
 #include "singletons/Settings.hpp"
 #include "singletons/WindowManager.hpp"
+#include "util/StreamerMode.hpp"
 
 namespace chatterino {
 
@@ -210,6 +211,11 @@ void SharedMessageBuilder::parseHighlights()
         this->message().flags.set(MessageFlag::Highlighted);
         this->message().highlightColor = userHighlight.getColor();
 
+        if (userHighlight.showInMentions())
+        {
+            this->message().flags.set(MessageFlag::ShowInMentions);
+        }
+
         if (userHighlight.hasAlert())
         {
             this->highlightAlert_ = true;
@@ -254,7 +260,8 @@ void SharedMessageBuilder::parseHighlights()
     if (getSettings()->enableSelfHighlight && currentUsername.size() > 0)
     {
         HighlightPhrase selfHighlight(
-            currentUsername, getSettings()->enableSelfHighlightTaskbar,
+            currentUsername, getSettings()->showSelfHighlightInMentions,
+            getSettings()->enableSelfHighlightTaskbar,
             getSettings()->enableSelfHighlightSound, false, false,
             getSettings()->selfHighlightSoundUrl.getValue(),
             ColorProvider::instance().color(ColorType::SelfHighlight));
@@ -271,6 +278,11 @@ void SharedMessageBuilder::parseHighlights()
 
         this->message().flags.set(MessageFlag::Highlighted);
         this->message().highlightColor = highlight.getColor();
+
+        if (highlight.showInMentions())
+        {
+            this->message().flags.set(MessageFlag::ShowInMentions);
+        }
 
         if (highlight.hasAlert())
         {
@@ -367,6 +379,12 @@ inline QMediaPlayer *getPlayer()
 void SharedMessageBuilder::triggerHighlights()
 {
     static QUrl currentPlayerUrl;
+
+    if (isInStreamerMode() && getSettings()->streamerModeMuteMentions)
+    {
+        // We are in streamer mode with muting mention sounds enabled. Do nothing.
+        return;
+    }
 
     if (getCSettings().isMutedChannel(this->channel->getName()))
     {

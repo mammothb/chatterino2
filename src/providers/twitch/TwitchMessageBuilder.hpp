@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "common/Aliases.hpp"
 #include "common/Outcome.hpp"
@@ -17,6 +17,13 @@ using EmotePtr = std::shared_ptr<const Emote>;
 
 class Channel;
 class TwitchChannel;
+
+struct TwitchEmoteOccurence {
+    int start;
+    int end;
+    EmotePtr ptr;
+    EmoteName name;
+};
 
 class TwitchMessageBuilder : public SharedMessageBuilder
 {
@@ -52,24 +59,23 @@ private:
     void parseMessageID();
     void parseRoomID();
     void appendUsername();
-    void runIgnoreReplaces(
-        std::vector<std::tuple<int, EmotePtr, EmoteName>> &twitchEmotes);
+
+    void runIgnoreReplaces(std::vector<TwitchEmoteOccurence> &twitchEmotes);
 
     boost::optional<EmotePtr> getTwitchBadge(const Badge &badge);
-    void appendTwitchEmote(
-        const QString &emote,
-        std::vector<std::tuple<int, EmotePtr, EmoteName>> &vec,
-        std::vector<int> &correctPositions);
-    Outcome tryAppendEmote(const EmoteName &name);
+    void appendTwitchEmote(const QString &emote,
+                           std::vector<TwitchEmoteOccurence> &vec,
+                           std::vector<int> &correctPositions);
+    Outcome tryAppendEmote(const EmoteName &name) override;
 
-    void addWords(
-        const QStringList &words,
-        const std::vector<std::tuple<int, EmotePtr, EmoteName>> &twitchEmotes);
+    void addWords(const QStringList &words,
+                  const std::vector<TwitchEmoteOccurence> &twitchEmotes);
     void addTextOrEmoji(EmotePtr emote) override;
     void addTextOrEmoji(const QString &value) override;
 
     void appendTwitchBadges();
     void appendChatterinoBadges();
+    void appendFfzBadges();
     Outcome tryParseCheermote(const QString &string);
 
     QString roomID_;

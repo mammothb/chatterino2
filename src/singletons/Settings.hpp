@@ -6,10 +6,14 @@
 #include "BaseSettings.hpp"
 #include "common/Channel.hpp"
 #include "common/SignalVector.hpp"
+#include "controllers/filters/FilterRecord.hpp"
 #include "controllers/highlights/HighlightPhrase.hpp"
 #include "controllers/moderationactions/ModerationAction.hpp"
 #include "singletons/Toasts.hpp"
+#include "util/StreamerMode.hpp"
 #include "widgets/Notebook.hpp"
+
+using TimeoutButton = std::pair<QString, int>;
 
 namespace chatterino {
 
@@ -17,6 +21,7 @@ class HighlightPhrase;
 class HighlightBlacklistUser;
 class IgnorePhrase;
 class TaggedUser;
+class FilterRecord;
 
 /// Settings which are availlable for reading on all threads.
 class ConcurrentSettings
@@ -30,6 +35,7 @@ public:
     SignalVector<QString> &ignoredEmotes;
     SignalVector<IgnorePhrase> &ignoredMessages;
     SignalVector<QString> &mutedChannels;
+    SignalVector<FilterRecordPtr> &filterRecords;
     //SignalVector<TaggedUser> &taggedUsers;
     SignalVector<ModerationAction> &moderationActions;
 
@@ -64,8 +70,8 @@ public:
                                       "h:mm"};
     BoolSetting showLastMessageIndicator = {
         "/appearance/messages/showLastMessageIndicator", false};
-    IntSetting lastMessagePattern = {"/appearance/messages/lastMessagePattern",
-                                     Qt::VerPattern};
+    EnumSetting<Qt::BrushStyle> lastMessagePattern = {
+        "/appearance/messages/lastMessagePattern", Qt::VerPattern};
     QStringSetting lastMessageColor = {"/appearance/messages/lastMessageColor",
                                        ""};
     BoolSetting showEmptyInput = {"/appearance/showEmptyInputBox", true};
@@ -93,14 +99,14 @@ public:
         "/appearance/messages/alternateMessageBackground", false};
     FloatSetting boldScale = {"/appearance/boldScale", 63};
     BoolSetting showTabCloseButton = {"/appearance/showTabCloseButton", true};
-    BoolSetting showTabLive = {"/appearance/showTabLiveButton", false};
+    BoolSetting showTabLive = {"/appearance/showTabLiveButton", true};
     BoolSetting hidePreferencesButton = {"/appearance/hidePreferencesButton",
                                          false};
     BoolSetting hideUserButton = {"/appearance/hideUserButton", false};
     BoolSetting enableSmoothScrolling = {"/appearance/smoothScrolling", true};
     BoolSetting enableSmoothScrollingNewMessages = {
         "/appearance/smoothScrollingNewMessages", false};
-    BoolSetting boldUsernames = {"/appearance/messages/boldUsernames", false};
+    BoolSetting boldUsernames = {"/appearance/messages/boldUsernames", true};
     BoolSetting findAllUsernames = {"/appearance/messages/findAllUsernames",
                                     false};
     // BoolSetting customizable splitheader
@@ -124,6 +130,7 @@ public:
                                           true};
     BoolSetting showBadgesVanity = {"/appearance/badges/vanity", true};
     BoolSetting showBadgesChatterino = {"/appearance/badges/chatterino", true};
+    BoolSetting showBadgesFfz = {"/appearance/badges/ffz", true};
 
     /// Behaviour
     BoolSetting allowDuplicateMessages = {"/behaviour/allowDuplicateMessages",
@@ -178,7 +185,18 @@ public:
     BoolSetting unshortLinks = {"/links/unshortLinks", false};
     BoolSetting lowercaseDomains = {"/links/linkLowercase", true};
 
-    /// Ignored phrases
+    /// Streamer Mode
+    EnumSetting<StreamerModeSetting> enableStreamerMode = {
+        "/streamerMode/enabled", StreamerModeSetting::DetectObs};
+    BoolSetting streamerModeHideUsercardAvatars = {
+        "/streamerMode/hideUsercardAvatars", true};
+    BoolSetting streamerModeHideLinkThumbnails = {
+        "/streamerMode/hideLinkThumbnails", true};
+    BoolSetting streamerModeHideViewerCountAndDuration = {
+        "/streamerMode/hideViewerCountAndDuration", false};
+    BoolSetting streamerModeMuteMentions = {"/streamerMode/muteMentions", true};
+
+    /// Ignored Phrases
     QStringSetting ignoredPhraseReplace = {"/ignore/ignoredPhraseReplace",
                                            "***"};
 
@@ -199,6 +217,8 @@ public:
 
     BoolSetting enableSelfHighlight = {
         "/highlighting/selfHighlight/nameIsHighlightKeyword", true};
+    BoolSetting showSelfHighlightInMentions = {
+        "/highlighting/selfHighlight/showSelfHighlightInMentions", true};
     BoolSetting enableSelfHighlightSound = {
         "/highlighting/selfHighlight/enableSound", true};
     BoolSetting enableSelfHighlightTaskbar = {
@@ -243,6 +263,10 @@ public:
     QStringSetting highlightColor = {"/highlighting/color", ""};
 
     BoolSetting longAlerts = {"/highlighting/alerts", false};
+
+    /// Filtering
+    BoolSetting excludeUserMessagesFromFilter = {
+        "/filtering/excludeUserMessages", false};
 
     /// Logging
     BoolSetting enableLogging = {"/logging/enabled", false};
@@ -315,8 +339,6 @@ public:
     BoolSetting restartOnCrash = {"/misc/restartOnCrash", false};
     BoolSetting attachExtensionToAnyProcess = {
         "/misc/attachExtensionToAnyProcess", false};
-    BoolSetting hideViewerCountAndDuration = {
-        "/misc/hideViewerCountAndDuration", false};
     BoolSetting askOnImageUpload = {"/misc/askOnImageUpload", true};
 
     /// Debug
@@ -341,6 +363,19 @@ public:
     IntSetting hideSimilarMaxDelay = {"/similarity/hideSimilarMaxDelay", 5};
     IntSetting hideSimilarMaxMessagesToCheck = {
         "/similarity/hideSimilarMaxMessagesToCheck", 3};
+
+    /// Timeout buttons
+
+    ChatterinoSetting<std::vector<TimeoutButton>> timeoutButtons = {
+        "/timeouts/timeoutButtons",
+        {{"s", 1},
+         {"s", 30},
+         {"m", 1},
+         {"m", 5},
+         {"m", 30},
+         {"h", 1},
+         {"d", 1},
+         {"w", 1}}};
 
 private:
     void updateModerationActions();

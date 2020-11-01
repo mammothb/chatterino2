@@ -12,6 +12,7 @@
 #include "singletons/WindowManager.hpp"
 #include "util/LayoutCreator.hpp"
 #include "util/LayoutHelper.hpp"
+#include "util/StreamerMode.hpp"
 #include "widgets/Label.hpp"
 #include "widgets/TooltipWidget.hpp"
 #include "widgets/dialogs/SettingsDialog.hpp"
@@ -86,30 +87,64 @@ namespace {
     }
     auto formatTooltip(const TwitchChannel::StreamStatus &s, QString thumbnail)
     {
-        return QString("<style>.center { text-align: center; }</style> \
-            <p class=\"center\">%1%2%3%4%5%6 for %7 with %8 viewers</p>")
-            .arg(s.title.toHtmlEscaped())
-            .arg(s.title.isEmpty() ? QString() : "<br><br>")
-            .arg(getSettings()->thumbnailSizeStream.getValue() > 0
-                     ? ((thumbnail.isEmpty()
-                             ? "Couldn't fetch thumbnail"
-                             : "<img src=\"data:image/jpg;base64, " +
-                                   thumbnail + "\"/>") +
-                        "<br>")
-                     : QString())
-            .arg(s.game.toHtmlEscaped())
-            .arg(s.game.isEmpty() ? QString() : "<br>")
-            .arg(s.rerun ? "Vod-casting" : "Live")
-            .arg(getSettings()->hideViewerCountAndDuration ? "&lt;Hidden&gt;"
-                                                           : s.uptime)
-            .arg(getSettings()->hideViewerCountAndDuration
-                     ? "&lt;Hidden&gt;"
-                     : QString::number(s.viewerCount));
+        auto title = [&s]() -> QString {
+            if (s.title.isEmpty())
+            {
+                return QStringLiteral("");
+            }
+
+            return s.title.toHtmlEscaped() + "<br><br>";
+        }();
+
+        auto tooltip = [&thumbnail]() -> QString {
+            if (getSettings()->thumbnailSizeStream.getValue() == 0)
+            {
+                return QStringLiteral("");
+            }
+
+            if (thumbnail.isEmpty())
+            {
+                return QStringLiteral("Couldn't fetch thumbnail<br>");
+            }
+
+            return "<img src=\"data:image/jpg;base64, " + thumbnail + "\"><br>";
+        }();
+
+        auto game = [&s]() -> QString {
+            if (s.game.isEmpty())
+            {
+                return QStringLiteral("");
+            }
+
+            return s.game.toHtmlEscaped() + "<br>";
+        }();
+
+        auto extraStreamData = [&s]() -> QString {
+            if (isInStreamerMode() &&
+                getSettings()->streamerModeHideViewerCountAndDuration)
+            {
+                return QStringLiteral(
+                    "<span style=\"color: #808892;\">&lt;Streamer "
+                    "Mode&gt;</span>");
+            }
+
+            return QString("%1 for %2 with %3 viewers")
+                .arg(s.rerun ? "Vod-casting" : "Live")
+                .arg(s.uptime)
+                .arg(QString::number(s.viewerCount));
+        }();
+
+        return QString("<p style=\"text-align: center;\">" +  //
+                       title +                                //
+                       tooltip +                              //
+                       game +                                 //
+                       extraStreamData +                      //
+                       "</p>"                                 //
+        );
     }
     auto formatOfflineTooltip(const TwitchChannel::StreamStatus &s)
     {
-        return QString("<style>.center { text-align: center; }</style> \
-                       <p class=\"center\">Offline<br>%1</p>")
+        return QString("<p style=\"text-align: center;\">Offline<br>%1</p>")
             .arg(s.title.toHtmlEscaped());
     }
     auto formatTitle(const TwitchChannel::StreamStatus &s, Settings &settings)
@@ -174,6 +209,9 @@ SplitHeader::SplitHeader(Split *_split)
 void SplitHeader::initializeLayout()
 {
     auto layout = makeLayout<QHBoxLayout>({
+        // space
+        makeWidget<BaseWidget>(
+            [](auto w) { w->setScaleIndependantSize(8, 4); }),
         // title
         this->titleLabel_ = makeWidget<Label>([](auto w) {
             w->setSizePolicy(QSizePolicy::MinimumExpanding,
@@ -181,6 +219,9 @@ void SplitHeader::initializeLayout()
             w->setCentered(true);
             w->setHasOffset(false);
         }),
+        // space
+        makeWidget<BaseWidget>(
+            [](auto w) { w->setScaleIndependantSize(8, 4); }),
         // mode
         this->modeButton_ = makeWidget<EffectLabel>([&](auto w) {
             w->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
@@ -199,8 +240,8 @@ void SplitHeader::initializeLayout()
                             if (getSettings()->moderationActions.empty())
                             {
                                 getApp()->windows->showSettingsDialog(
-                                    SettingsDialogPreference::
-                                        ModerationActions);
+                                    this, SettingsDialogPreference::
+                                              ModerationActions);
                                 this->split_->setModerationMode(true);
                             }
                             else
@@ -217,10 +258,16 @@ void SplitHeader::initializeLayout()
                         case Qt::RightButton:
                         case Qt::MiddleButton:
                             getApp()->windows->showSettingsDialog(
+                                this,
                                 SettingsDialogPreference::ModerationActions);
                             break;
                     }
                 });
+        }),
+        // viewer list
+        this->viewersButton_ = makeWidget<Button>([&](auto w) {
+            QObject::connect(w, &Button::leftClicked, this,
+                             [this]() { this->split_->showViewerList(); });
         }),
         // dropdown
         this->dropdownButton_ = makeWidget<Button>([&](auto w) {
@@ -281,6 +328,7 @@ std::unique_ptr<QMenu> SplitHeader::createMainMenu()
                     QKeySequence("Ctrl+N"));
     menu->addAction("Search", this->split_, &Split::showSearch,
                     QKeySequence("Ctrl+F"));
+    menu->addAction("Set filters", this->split_, &Split::setFiltersDialog);
     menu->addSeparator();
 #ifdef USEWEBENGINE
     this->dropdownMenu.addAction("Start watching", this, [this] {
@@ -541,16 +589,27 @@ void SplitHeader::initializeModeSignals(EffectLabel &label)
     });
 }
 
+void SplitHeader::resetThumbnail()
+{
+    this->lastThumbnail_.invalidate();
+    this->thumbnail_.clear();
+}
+
 void SplitHeader::handleChannelChanged()
 {
+    this->resetThumbnail();
+
+    this->updateChannelText();
+
     this->channelConnections_.clear();
 
     auto channel = this->split_->getChannel();
     if (auto twitchChannel = dynamic_cast<TwitchChannel *>(channel.get()))
     {
         this->channelConnections_.emplace_back(
-            twitchChannel->liveStatusChanged.connect(
-                [this]() { this->updateChannelText(); }));
+            twitchChannel->liveStatusChanged.connect([this]() {
+                this->updateChannelText();  //
+            }));
     }
 }
 
@@ -561,12 +620,18 @@ void SplitHeader::scaleChangedEvent(float scale)
     this->setFixedHeight(w);
     this->dropdownButton_->setFixedWidth(w);
     this->moderationButton_->setFixedWidth(w);
+    this->viewersButton_->setFixedWidth(w);
     this->addButton_->setFixedWidth(w * 5 / 8);
 }
 
 void SplitHeader::setAddButtonVisible(bool value)
 {
     this->addButton_->setVisible(value);
+}
+
+void SplitHeader::setViewersButtonVisible(bool value)
+{
+    this->viewersButton_->setVisible(value);
 }
 
 void SplitHeader::updateChannelText()
@@ -588,6 +653,7 @@ void SplitHeader::updateChannelText()
         if (streamStatus->live)
         {
             this->isLive_ = true;
+            // XXX: This URL format can be figured out from the Helix Get Streams API which we parse in TwitchChannel::parseLiveStatus
             QString url = "https://static-cdn.jtvnw.net/"
                           "previews-ttv/live_user_" +
                           channel->getName().toLower();
@@ -611,9 +677,17 @@ void SplitHeader::updateChannelText()
             {
                 NetworkRequest(url, NetworkRequestType::Get)
                     .onSuccess([this](auto result) -> Outcome {
-                        this->thumbnail_ =
-                            QString::fromLatin1(result.getData().toBase64());
-                        updateChannelText();
+                        // NOTE: We do not follow the redirects, so we need to make sure we only treat code 200 as a valid image
+                        if (result.status() == 200)
+                        {
+                            this->thumbnail_ = QString::fromLatin1(
+                                result.getData().toBase64());
+                        }
+                        else
+                        {
+                            this->thumbnail_.clear();
+                        }
+                        this->updateChannelText();
                         return Success;
                     })
                     .execute();
@@ -626,6 +700,11 @@ void SplitHeader::updateChannelText()
         {
             this->tooltipText_ = formatOfflineTooltip(*streamStatus);
         }
+    }
+
+    if (!title.isEmpty() && this->split_->getFilters().size() != 0)
+    {
+        title += " - filtered";
     }
 
     this->titleLabel_->setText(title.isEmpty() ? "<empty>" : title);
@@ -730,7 +809,7 @@ void SplitHeader::enterEvent(QEvent *event)
         tooltip->setWordWrap(true);
         tooltip->adjustSize();
         auto pos = this->mapToGlobal(this->rect().bottomLeft()) +
-                   QPoint((this->width() - tooltip->width()) / 2, 0);
+                   QPoint((this->width() - tooltip->width()) / 2, 1);
 
         tooltip->moveTo(this, pos, false);
         tooltip->show();
@@ -765,11 +844,13 @@ void SplitHeader::themeChangedEvent()
     // --
     if (this->theme->isLightTheme())
     {
+        this->viewersButton_->setPixmap(getResources().buttons.viewersDark);
         this->dropdownButton_->setPixmap(getResources().buttons.menuDark);
         this->addButton_->setPixmap(getResources().buttons.addSplit);
     }
     else
     {
+        this->viewersButton_->setPixmap(getResources().buttons.viewersLight);
         this->dropdownButton_->setPixmap(getResources().buttons.menuLight);
         this->addButton_->setPixmap(getResources().buttons.addSplitDark);
     }

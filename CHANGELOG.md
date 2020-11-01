@@ -2,12 +2,46 @@
 
 ## Unversioned
 
+- Minor: Added placeholder text for message text input box. (#2143)
+- Minor: Added support for FrankerFaceZ badges. (#2101, part of #1658)
+- Minor: Added a navigation list to the settings and reordered them.
+- Major: Added "Channel Filters". See https://wiki.chatterino.com/Filters/ for how they work or how to configure them. (#1748, #2083)
+- Major: Added Streamer Mode configuration (under `Settings -> General`), where you can select which features of Chatterino should behave differently when you are in Streamer Mode. (#2001)
+- Minor: Improved viewer list window.
+- Minor: Added emote completion with `:` to the whispers channel (#2075)
+- Minor: Made the current channels emotes appear at the top of the emote picker popup. (#2057)
+- Minor: Added viewer list button to twitch channel header. (#1978)
+- Minor: Added followage and subage information to usercard. (#2023)
+- Minor: Added an option to only open channels specified in command line with `-c` parameter. You can also use `--help` to display short help message (#1940)
+- Minor: Added customizable timeout buttons to the user info popup
+- Minor: Deprecate loading of "v1" window layouts. If you haven't updated Chatterino in more than 2 years, there's a chance you will lose your window layout.
 - Minor: Disable checking for updates on unsupported platforms (#1874)
+- Minor: User popup will now automatically display messages as they are received
+- Minor: Changed the English in two rate-limited system messages (#1878)
+- Minor: Added image for streamer mode in the user popup icon.
+- Minor: Added vip and unvip buttons.
+- Minor: Added settings for displaying where the last message was.
+- Minor: Commands are now saved upon pressing Ok in the settings window
+- Minor: Colorized nicknames now enabled by default
+- Minor: Show channels live now enabled by default
+- Minor: Bold usernames enabled by default
+- Minor: Improve UX of the "Login expired!" message (#2029)
+- Minor: PageUp and PageDown now scroll in the selected split (#2070, #2081)
+- Minor: Allow highlights to be excluded from `/mentions`. Excluded highlights will not trigger tab highlights either. (#1793, #2036)
+- Minor: Flag all popup dialogs as actual dialogs so they get the relevant window manager hints (#1843)
+- Bugfix: Fix crash occurring when pressing Escape in the Color Picker Dialog (#1843)
 - Bugfix: Fix bug preventing users from setting the highlight color of the second entry in the "User" highlights tab (#1898)
 - Bugfix: Fix bug where the "check user follow state" event could trigger a network request requesting the user to follow or unfollow a user. By itself its quite harmless as it just repeats to Twitch the same follow state we had, so no follows should have been lost by this but it meant there was a rogue network request that was fired that could cause a crash (#1906)
 - Bugfix: /usercard command will now respect the "Automatically close user popup" setting (#1918)
 - Bugfix: Handle symlinks properly when saving commands & settings (#1856, #1908)
 - Bugfix: Starting Chatterino in a minimized state after an update will no longer cause a crash
+- Bugfix: Modify the emote parsing to handle some edge-cases with dots and stuff (#1704, #1714)
+- Bugfix: Fixed timestamps being incorrect on some messages loaded from the recent-messages service on startup (#1286, #2020)
+- Bugfix: Fixed timestamps missing on channel point redemption messages (#1943)
+- Bugfix: Fixed tooltip didn't show in `EmotePopup` depending on the `Link preview` setting enabled or no (#2008)
+- Bugfix: Fixed Stream thumbnail not updating after using the "Change channel" feature (#2074, #2080)
+- Bugfix: Fix Tab key not working in the Ctrl+K Quick Switcher (#2065)
+- Bugfix: Fix bug preventing moderator actions when viewing a user card from the search window (#1089)
 
 ## 2.2.0
 
@@ -36,6 +70,7 @@
 - Bugfix: MacOS updater looked for non-existing fields, causing it to always fail the update check (#1642)
 - Bugfix: Fixed message menu crashing if the message you right-clicked goes out of scope before you select an action (#1783) (#1787)
 - Bugfix: Fixed alternate messages flickering in UserInfoPopup when clicking Refresh if there was an odd number of messages in there (#1789 #1810)
+- Bugfix: Fix a crash when using middle click scroll on a chat window. (#1870)
 - Settings open faster
 - Dev: Fully remove Twitch Chatroom support
 - Dev: Handle conversion of historical CLEARCHAT messages to NOTICE messages in Chatterino instead of relying on the Recent Messages API to handle it for us. (#1804)

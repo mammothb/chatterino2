@@ -627,6 +627,17 @@ SplitNotebook::SplitNotebook(Window *parent)
     }
 }
 
+void SplitNotebook::showEvent(QShowEvent *)
+{
+    if (auto page = this->getSelectedPage())
+    {
+        if (auto split = page->findChild<Split *>())
+        {
+            split->giveFocus(Qt::OtherFocusReason);
+        }
+    }
+}
+
 void SplitNotebook::addCustomButtons()
 {
     // settings
@@ -641,7 +652,7 @@ void SplitNotebook::addCustomButtons()
     settingsBtn->setIcon(NotebookButton::Settings);
 
     QObject::connect(settingsBtn, &NotebookButton::leftClicked,
-                     [] { getApp()->windows->showSettingsDialog(); });
+                     [this] { getApp()->windows->showSettingsDialog(this); });
 
     // account
     auto userBtn = this->addCustomButton();

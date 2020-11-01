@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QCommandLineParser>
 #include <QDebug>
 #include <QMessageBox>
 #include <QStringList>
@@ -9,6 +10,7 @@
 #include "common/Args.hpp"
 #include "common/Modes.hpp"
 #include "common/Version.hpp"
+#include "providers/IvrApi.hpp"
 #include "providers/twitch/api/Helix.hpp"
 #include "providers/twitch/api/Kraken.hpp"
 #include "singletons/Paths.hpp"
@@ -25,14 +27,10 @@ int main(int argc, char **argv)
     QCoreApplication::setApplicationVersion(CHATTERINO_VERSION);
     QCoreApplication::setOrganizationDomain("https://www.chatterino.com");
 
-    // convert char** to QStringList
-    auto args = QStringList();
-    std::transform(argv + 1, argv + argc, std::back_inserter(args),
-                   [&](auto s) { return s; });
-    initArgs(args);
+    initArgs(a);
 
     // run in gui mode or browser extension host mode
-    if (shouldRunBrowserExtensionHost(args))
+    if (getArgs().shouldRunBrowserExtensionHost)
     {
         runBrowserExtensionHost();
     }
@@ -48,6 +46,7 @@ int main(int argc, char **argv)
     }
     else
     {
+        IvrApi::initialize();
         Helix::initialize();
         Kraken::initialize();
 

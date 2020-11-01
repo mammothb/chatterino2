@@ -3,6 +3,7 @@
 #include "common/Channel.hpp"
 #include "common/FlagsEnum.hpp"
 #include "common/Singleton.hpp"
+#include "common/WindowDescriptors.hpp"
 #include "pajlada/settings/settinglistener.hpp"
 #include "widgets/splits/SplitContainer.hpp"
 
@@ -13,7 +14,7 @@ class Paths;
 class Window;
 class SplitContainer;
 
-enum class MessageElementFlag;
+enum class MessageElementFlag : int64_t;
 using MessageElementFlags = FlagsEnum<MessageElementFlag>;
 enum class WindowType;
 
@@ -25,9 +26,11 @@ public:
     WindowManager();
 
     static void encodeChannel(IndirectChannel channel, QJsonObject &obj);
-    static IndirectChannel decodeChannel(const QJsonObject &obj);
+    static void encodeFilters(Split *split, QJsonArray &arr);
+    static IndirectChannel decodeChannel(const SplitDescriptor &descriptor);
 
     void showSettingsDialog(
+        QWidget *parent,
         SettingsDialogPreference preference = SettingsDialogPreference());
 
     // Show the account selector widget at point
@@ -88,7 +91,16 @@ public:
     pajlada::Signals::NoArgSignal miscUpdate;
 
 private:
-    void encodeNodeRecusively(SplitContainer::Node *node, QJsonObject &obj);
+    void encodeNodeRecursively(SplitContainer::Node *node, QJsonObject &obj);
+
+    // Load window layout from the window-layout.json file
+    WindowLayout loadWindowLayoutFromFile() const;
+
+    // Apply a window layout for this window manager.
+    void applyWindowLayout(const WindowLayout &layout);
+
+    // Contains the full path to the window layout file, e.g. /home/pajlada/.local/share/Chatterino/Settings/window-layout.json
+    const QString windowLayoutFilePath;
 
     bool initialized_ = false;
 
