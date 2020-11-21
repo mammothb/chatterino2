@@ -116,8 +116,9 @@ void addUsersTab(IgnoresPage &page, LayoutCreator<QVBoxLayout> users,
 
         auto &setting = getSettings()->showIgnoredUsersMessages;
 
-        setting.connect(
-            [combo](const int value) { combo->setCurrentIndex(value); });
+        setting.connect([combo](const int value) {
+            combo->setCurrentIndex(value);
+        });
 
         QObject::connect(combo,
                          QOverload<int>::of(&QComboBox::currentIndexChanged),

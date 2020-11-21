@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v2.3.3
+      - uses: actions/checkout@v2.3.4
         with:
           submodules: true
 
@@ -159,13 +159,13 @@ jobs:
     steps:
       - name: Create release
         id: create_release
-        uses: pajlada/create-release@v2.0.2
+        uses: pajlada/create-release@v2.0.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: github-actions-nightly
           backup_tag_name: backup-github-actions-nightly
-          release_name: GitHub Actions Nightly Test
+          release_name: Nightly Release
           body: |
               1 ${{ github.eventName }}
               2 ${{ github.sha }}

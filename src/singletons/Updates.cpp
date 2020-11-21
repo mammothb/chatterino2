@@ -240,13 +240,11 @@ void Updates::checkForUpdates()
         return;
     }
 
-    // Disable updates if on nightly and windows.
-#ifdef Q_OS_WIN
+    // Disable updates if on nightly
     if (Modes::instance().isNightly)
     {
         return;
     }
-#endif
 
     QString url =
         "https://notitia.chatterino.com/version/chatterino/" CHATTERINO_OS "/" +
@@ -364,7 +362,9 @@ void Updates::setStatus_(Status status)
     if (this->status_ != status)
     {
         this->status_ = status;
-        postToThread([this, status] { this->statusUpdated.invoke(status); });
+        postToThread([this, status] {
+            this->statusUpdated.invoke(status);
+        });
     }
 }
 

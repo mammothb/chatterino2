@@ -2,10 +2,11 @@
 
 ## Unversioned
 
-- Minor: Added placeholder text for message text input box. (#2143)
+- Minor: Made usercard update user's display name (#2160)
+- Minor: Added placeholder text for message text input box. (#2143, #2149)
 - Minor: Added support for FrankerFaceZ badges. (#2101, part of #1658)
 - Minor: Added a navigation list to the settings and reordered them.
-- Major: Added "Channel Filters". See https://wiki.chatterino.com/Filters/ for how they work or how to configure them. (#1748, #2083)
+- Major: Added "Channel Filters". See https://wiki.chatterino.com/Filters/ for how they work or how to configure them. (#1748, #2083, #2090, #2200)
 - Major: Added Streamer Mode configuration (under `Settings -> General`), where you can select which features of Chatterino should behave differently when you are in Streamer Mode. (#2001)
 - Minor: Improved viewer list window.
 - Minor: Added emote completion with `:` to the whispers channel (#2075)
@@ -28,7 +29,8 @@
 - Minor: Improve UX of the "Login expired!" message (#2029)
 - Minor: PageUp and PageDown now scroll in the selected split (#2070, #2081)
 - Minor: Allow highlights to be excluded from `/mentions`. Excluded highlights will not trigger tab highlights either. (#1793, #2036)
-- Minor: Flag all popup dialogs as actual dialogs so they get the relevant window manager hints (#1843)
+- Minor: Flag all popup dialogs as actual dialogs so they get the relevant window manager hints (#1843, #2182, #2185)
+- Minor: Don't show update button for nightly builds on macOS and Linux, this was already the case for Windows (#2163, #2164)
 - Bugfix: Fix crash occurring when pressing Escape in the Color Picker Dialog (#1843)
 - Bugfix: Fix bug preventing users from setting the highlight color of the second entry in the "User" highlights tab (#1898)
 - Bugfix: Fix bug where the "check user follow state" event could trigger a network request requesting the user to follow or unfollow a user. By itself its quite harmless as it just repeats to Twitch the same follow state we had, so no follows should have been lost by this but it meant there was a rogue network request that was fired that could cause a crash (#1906)
@@ -40,8 +42,12 @@
 - Bugfix: Fixed timestamps missing on channel point redemption messages (#1943)
 - Bugfix: Fixed tooltip didn't show in `EmotePopup` depending on the `Link preview` setting enabled or no (#2008)
 - Bugfix: Fixed Stream thumbnail not updating after using the "Change channel" feature (#2074, #2080)
+- Bugfix: Fixed previous link info not updating after `Link information` setting is enabled (#2054)
 - Bugfix: Fix Tab key not working in the Ctrl+K Quick Switcher (#2065)
 - Bugfix: Fix bug preventing moderator actions when viewing a user card from the search window (#1089)
+- Bugfix: Fix `:` emote completion menu ignoring emote capitalization (#1962)
+- Bugfix: Fix a bug that caused `Ignore page` to fall into an infinity loop with an empty pattern and regex enabled (#2125)
+- Bugfix: Fix a crash casued by FrankerFaceZ responding with invalid emote links (#2191)
 
 ## 2.2.0
 
