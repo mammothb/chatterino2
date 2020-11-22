@@ -63,8 +63,9 @@ void addEmotesTab(LayoutCreator<QVBoxLayout> layout)
         view->getTableView()->setColumnWidth(0, 200);
     });
 
-    view->addButtonPressed.connect(
-        [] { getSettings()->ignoredEmotes.append(QString("emote name")); });
+    view->addButtonPressed.connect([] {
+        getSettings()->ignoredEmotes.append(QString("emote name"));
+    });
 }
 
 void addPhrasesTab(LayoutCreator<QVBoxLayout> layout)
