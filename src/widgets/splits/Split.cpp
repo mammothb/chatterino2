@@ -855,7 +855,7 @@ void Split::reloadChannelAndSubscriberEmotes()
 
 void Split::reconnect()
 {
-  this->getChannel()->reconnect();
+    this->getChannel()->reconnect();
 }
 
 void Split::dragEnterEvent(QDragEnterEvent *event)
