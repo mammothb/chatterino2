@@ -113,6 +113,29 @@ void SplitInput::initLayout()
         },
         this->managedConnections_);
 }
+std::string SplitInput::getColorCode(bool isPrime)
+{
+    std::string colorCode = "";
+    if (isPrime)
+    {
+        char hex_char[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+                'A', 'B', 'C', 'D', 'E', 'F'};
+        colorCode += "#";
+        for (int i = 0; i < 6; ++i)
+        {
+            colorCode += hex_char[rand() % 16];
+        }
+    }
+    else
+    {
+        std::vector<std::string> colors = {"Blue", "BlueViolet", "CadetBlue",
+                "Chocolate", "Coral", "DodgerBlue", "Firebrick", "GoldenRod",
+                "Green", "HotPink", "OrangeRed", "Red", "SeaGreen",
+                "SpringGreen", "YellowGreen"};
+        colorCode = colors[rand() % colors.size()];
+    }
+    return colorCode;
+}
 
 void SplitInput::scaleChangedEvent(float scale)
 {
@@ -223,6 +246,12 @@ void SplitInput::installKeyPressedEvent()
             QString sendMessage = app->commands->execCommand(message, c, false);
 
             c->sendMessage(sendMessage);
+            if (getSettings()->randomizeColor)
+            {
+                QThread::msleep(1500);
+                c->sendMessage(qS("/color " +
+                                  getColorCode(getSettings()->usePrimeColors)));
+            }
             // don't add duplicate messages and empty message to message history
             if ((this->prevMsg_.isEmpty() ||
                  !this->prevMsg_.endsWith(message)) &&
