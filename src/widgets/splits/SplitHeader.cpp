@@ -10,6 +10,7 @@
 #include "singletons/Theme.hpp"
 #include "singletons/TooltipPreviewImage.hpp"
 #include "singletons/WindowManager.hpp"
+#include "util/Helpers.hpp"
 #include "util/LayoutCreator.hpp"
 #include "util/LayoutHelper.hpp"
 #include "util/StreamerMode.hpp"
@@ -47,7 +48,7 @@ namespace {
                 text += "r9k, ";
             if (modes->slowMode)
                 text +=
-                    QString("slow(%1), ").arg(QString::number(modes->slowMode));
+                    QString("slow(%1), ").arg(localizeNumbers(modes->slowMode));
             if (modes->emoteOnly)
                 text += "emote, ";
             if (modes->submode)
@@ -57,7 +58,7 @@ namespace {
                 if (modes->followerOnly != 0)
                 {
                     text += QString("follow(%1m), ")
-                                .arg(QString::number(modes->followerOnly));
+                                .arg(localizeNumbers(modes->followerOnly));
                 }
                 else
                 {
@@ -131,7 +132,7 @@ namespace {
             return QString("%1 for %2 with %3 viewers")
                 .arg(s.rerun ? "Vod-casting" : "Live")
                 .arg(s.uptime)
-                .arg(QString::number(s.viewerCount));
+                .arg(localizeNumbers(s.viewerCount));
         }();
 
         return QString("<p style=\"text-align: center;\">" +  //
@@ -163,7 +164,7 @@ namespace {
         if (settings.headerUptime)
             title += " - " + s.uptime;
         if (settings.headerViewerCount)
-            title += " - " + QString::number(s.viewerCount);
+            title += " - " + localizeNumbers(s.viewerCount);
         if (settings.headerGame && !s.game.isEmpty())
             title += " - " + s.game;
         if (settings.headerStreamTitle && !s.title.isEmpty())
@@ -359,7 +360,10 @@ std::unique_ptr<QMenu> SplitHeader::createMainMenu()
     });
 #endif
 
-    if (dynamic_cast<TwitchChannel *>(this->split_->getChannel().get()))
+    auto *twitchChannel =
+        dynamic_cast<TwitchChannel *>(this->split_->getChannel().get());
+
+    if (twitchChannel)
     {
         menu->addAction(OPEN_IN_BROWSER, this->split_, &Split::openInBrowser);
 #ifndef USEWEBENGINE
@@ -374,6 +378,21 @@ std::unique_ptr<QMenu> SplitHeader::createMainMenu()
             menu->addAction("Open in custom player", this->split_,
                             &Split::openWithCustomScheme);
         }
+
+        if (this->split_->getChannel()->hasModRights())
+        {
+            menu->addAction(OPEN_MOD_VIEW_IN_BROWSER, this->split_,
+                            &Split::openModViewInBrowser);
+        }
+
+        menu->addAction(
+                "Create a clip", this->split_,
+                [twitchChannel] {
+                    twitchChannel->createClip();
+                },
+                QKeySequence("Alt+X"))
+            ->setVisible(twitchChannel->isLive());
+
         menu->addSeparator();
     }
 
@@ -391,7 +410,7 @@ std::unique_ptr<QMenu> SplitHeader::createMainMenu()
                         QKeySequence("Ctrl+F5"));
     }
 
-    if (dynamic_cast<TwitchChannel *>(this->split_->getChannel().get()))
+    if (twitchChannel)
     {
         menu->addAction("Reload channel emotes", this,
                         SLOT(reloadChannelEmotes()), QKeySequence("F5"));
@@ -418,7 +437,24 @@ std::unique_ptr<QMenu> SplitHeader::createMainMenu()
         this->split_->setModerationMode(!this->split_->getModerationMode());
     });
 
-    if (dynamic_cast<TwitchChannel *>(this->split_->getChannel().get()))
+    if (this->split_->getChannel()->getType() == Channel::Type::TwitchMentions)
+    {
+        auto action = new QAction(this);
+        action->setText("Enable /mention tab highlights");
+        action->setCheckable(true);
+
+        QObject::connect(moreMenu, &QMenu::aboutToShow, this, [action, this]() {
+            action->setChecked(getSettings()->highlightMentions);
+        });
+        action->connect(action, &QAction::triggered, this, [this]() {
+            getSettings()->highlightMentions =
+                !getSettings()->highlightMentions;
+        });
+
+        moreMenu->addAction(action);
+    }
+
+    if (twitchChannel)
     {
         moreMenu->addAction("Show viewer list", this->split_,
                             &Split::showViewerList);
@@ -441,7 +477,7 @@ std::unique_ptr<QMenu> SplitHeader::createMainMenu()
         moreMenu->addAction(action);
     }
 
-    if (dynamic_cast<TwitchChannel *>(this->split_->getChannel().get()))
+    if (twitchChannel)
     {
         auto action = new QAction(this);
         action->setText("Mute highlight sound");
@@ -659,7 +695,7 @@ void SplitHeader::updateChannelText()
     this->isLive_ = false;
     this->tooltipText_ = QString();
 
-    auto title = channel->getName();
+    auto title = channel->getLocalizedName();
 
     if (indirectChannel.getType() == Channel::Type::TwitchWatching)
         title = "watching: " + (title.isEmpty() ? "none" : title);

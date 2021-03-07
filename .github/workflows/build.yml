@@ -3,6 +3,8 @@ name: Build
 
 on:
   push:
+    branches:
+      - master
     paths-ignore:
       - 'docs/**'
       - '*.md'
@@ -17,6 +19,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
+        qt-version: [5.15.2, 5.12.10]
       fail-fast: false
 
     steps:
@@ -26,10 +29,10 @@ jobs:
 
       - name: Cache Qt
         id: cache-qt
-        uses: actions/cache@v2
+        uses: actions/cache@v2.1.4
         with:
           path: ../Qt
-          key: ${{ runner.os }}-QtCache-20201005
+          key: ${{ runner.os }}-QtCache-${{ matrix.qt-version }}-20210109
 
       # LINUX
       - name: Install p7zip (Ubuntu)
@@ -39,21 +42,22 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v2
         with:
-          # mirror: 'http://mirrors.ocf.berkeley.edu/qt/'
+          aqtversion: '==1.1.1'
           cached: ${{ steps.cache-qt.outputs.cache-hit }}
           extra: --external 7z
+          version: ${{ matrix.qt-version }}
 
       # WINDOWS
       - name: Cache conan
         if: startsWith(matrix.os, 'windows')
-        uses: actions/cache@v1
+        uses: actions/cache@v2.1.4
         with:
           key: ${{ runner.os }}-conan-root-${{ hashFiles('**/conanfile.txt') }}
           path: ~/.conan
 
       - name: Cache conan packages
         if: startsWith(matrix.os, 'windows')
-        uses: actions/cache@v1
+        uses: actions/cache@v2.1.4
         with:
           key: ${{ runner.os }}-conan-pkg-${{ hashFiles('**/conanfile.txt') }}
           path: C:/.conan/
@@ -84,15 +88,31 @@ jobs:
 
       - name: Upload artifact (Windows)
         if: startsWith(matrix.os, 'windows')
-        uses: actions/upload-artifact@v2.2.1
+        uses: actions/upload-artifact@v2.2.2
         with:
-          name: chatterino-windows-x86-64.zip
+          name: chatterino-windows-x86-64-${{ matrix.qt-version }}.zip
           path: build/chatterino-windows-x86-64.zip
 
       # LINUX
       - name: Install dependencies (Ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
-        run: sudo apt-get update && sudo apt-get -y install libssl-dev libboost-dev libboost-system-dev libboost-filesystem-dev libpulse-dev libxkbcommon-x11-0 libgstreamer-plugins-base1.0-0 build-essential libgl1-mesa-dev
+        run: |
+            sudo apt-get update
+            sudo apt-get -y install \
+                libssl-dev \
+                libboost-dev \
+                libboost-system-dev \
+                libboost-filesystem-dev \
+                libpulse-dev \
+                libxkbcommon-x11-0 \
+                libgstreamer-plugins-base1.0-0 \
+                build-essential \
+                libgl1-mesa-dev \
+                libxcb-icccm4 \
+                libxcb-image0 \
+                libxcb-keysyms1 \
+                libxcb-render-util0 \
+                libxcb-xinerama0
 
       - name: Build (Ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
@@ -112,16 +132,16 @@ jobs:
 
       - name: Upload artifact (Ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
-        uses: actions/upload-artifact@v2.2.1
+        uses: actions/upload-artifact@v2.2.2
         with:
-          name: Chatterino-x86_64.AppImage
+          name: Chatterino-x86_64-${{ matrix.qt-version }}.AppImage
           path: build/Chatterino-x86_64.AppImage
 
       # MACOS
       - name: Install dependencies (MacOS)
         if: startsWith(matrix.os, 'macos')
         run: |
-            brew install boost openssl rapidjson qt p7zip create-dmg
+            brew install boost openssl rapidjson p7zip create-dmg
         shell: bash
 
       - name: Build (MacOS)
@@ -129,8 +149,7 @@ jobs:
         run: |
             mkdir build
             cd build
-            /usr/local/opt/qt/bin/qmake .. DEFINES+=$dateOfBuild
-            sed -ie 's/-framework\\\ /-framework /g' Makefile
+            $Qt5_DIR/bin/qmake .. DEFINES+=$dateOfBuild
             make -j8
         shell: bash
 
@@ -146,9 +165,9 @@ jobs:
 
       - name: Upload artifact (MacOS)
         if: startsWith(matrix.os, 'macos')
-        uses: actions/upload-artifact@v2.2.1
+        uses: actions/upload-artifact@v2.2.2
         with:
-          name: chatterino-osx.dmg
+          name: chatterino-osx-${{ matrix.qt-version }}.dmg
           path: build/chatterino-osx.dmg
 
   create-release:
@@ -163,39 +182,29 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: github-actions-nightly
-          backup_tag_name: backup-github-actions-nightly
+          tag_name: nightly-build
+          backup_tag_name: backup-nightly-build
           release_name: Nightly Release
           body: |
-              1 ${{ github.eventName }}
-              2 ${{ github.sha }}
-              3 ${{ github.ref }}
-              4 ${{ github.workflow }}
-              5 ${{ github.action }}
-              6 ${{ github.actor }}
+              Nightly Build
           prerelease: true
 
-      - uses: actions/download-artifact@v2.0.6
+      - uses: actions/download-artifact@v2.0.8
         with:
-          name: chatterino-windows-x86-64.zip
+          name: chatterino-windows-x86-64-5.15.2.zip
           path: windows/
 
-      - uses: actions/download-artifact@v2.0.6
+      - uses: actions/download-artifact@v2.0.8
         with:
-          name: Chatterino-x86_64.AppImage
+          name: Chatterino-x86_64-5.15.2.AppImage
           path: linux/
 
-      - uses: actions/download-artifact@v2.0.6
+      - uses: actions/download-artifact@v2.0.8
         with:
-          name: chatterino-osx.dmg
+          name: chatterino-osx-5.15.2.dmg
           path: macos/
 
       # TODO: Extract dmg and appimage
-
-      - name: TREE
-        run: |
-            sudo apt update && sudo apt install tree
-            tree .
 
       # - name: Read upload URL into output
       #   id: upload_url
