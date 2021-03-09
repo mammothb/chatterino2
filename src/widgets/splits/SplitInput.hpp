@@ -44,7 +44,6 @@ protected:
 
 private:
     void initLayout();
-    std::string getColorCode(bool isPrime);
     void installKeyPressedEvent();
     void onCursorPositionChanged();
     void updateEmoteButton();

@@ -87,8 +87,6 @@ public:
                                      false};
     BoolSetting hideNicknameColors = {"/appearance/messages/hideNicknameColors",
                                       false};
-    BoolSetting randomizeColor = {"/appearance/messages/randomizeColor", false};
-    BoolSetting usePrimeColors = {"/appearance/messages/usePrimeColors", false};
 
     IntSetting tabDirection = {"/appearance/tabDirection",
                                NotebookTabDirection::Horizontal};
