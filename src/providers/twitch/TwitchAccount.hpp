@@ -2,6 +2,7 @@
 
 #include "common/Aliases.hpp"
 #include "common/Atomic.hpp"
+#include "common/Channel.hpp"
 #include "common/UniqueAccess.hpp"
 #include "controllers/accounts/Account.hpp"
 #include "messages/Emote.hpp"
@@ -21,6 +22,31 @@ enum FollowResult {
     FollowResult_Following,
     FollowResult_NotFollowing,
     FollowResult_Failed,
+};
+
+struct TwitchEmoteSetResolverResponse {
+    const QString channelName;
+    const QString channelId;
+    const QString type;
+    const int tier;
+    const bool isCustom;
+    // Example response:
+    //    {
+    //      "channel_name": "zneix",
+    //      "channel_id": "99631238",
+    //      "type": "",
+    //      "tier": 1,
+    //      "custom": false
+    //    }
+
+    TwitchEmoteSetResolverResponse(QJsonObject jsonObject)
+        : channelName(jsonObject.value("channel_name").toString())
+        , channelId(jsonObject.value("channel_id").toString())
+        , type(jsonObject.value("type").toString())
+        , tier(jsonObject.value("tier").toInt())
+        , isCustom(jsonObject.value("custom").toBool())
+    {
+    }
 };
 
 class TwitchAccount : public Account
@@ -81,17 +107,18 @@ public:
     void checkFollow(const QString targetUserID,
                      std::function<void(FollowResult)> onFinished);
 
-    std::set<TwitchUser> getBlocks() const;
+    SharedAccessGuard<const std::set<QString>> accessBlockedUserIds() const;
+    SharedAccessGuard<const std::set<TwitchUser>> accessBlocks() const;
 
     void loadEmotes();
-    AccessGuard<const TwitchAccountEmoteData> accessEmotes() const;
+    void loadUserstateEmotes(QStringList emoteSetKeys);
+    SharedAccessGuard<const TwitchAccountEmoteData> accessEmotes() const;
 
     // Automod actions
-    void autoModAllow(const QString msgID);
-    void autoModDeny(const QString msgID);
+    void autoModAllow(const QString msgID, ChannelPtr channel);
+    void autoModDeny(const QString msgID, ChannelPtr channel);
 
 private:
-    void parseEmotes(const rapidjson::Document &document);
     void loadEmoteSetData(std::shared_ptr<EmoteSet> emoteSet);
 
     QString oauthClient_;
@@ -102,7 +129,9 @@ private:
     Atomic<QColor> color_;
 
     mutable std::mutex ignoresMutex_;
-    std::set<TwitchUser> ignores_;
+    QElapsedTimer userstateEmotesTimer_;
+    UniqueAccess<std::set<TwitchUser>> ignores_;
+    UniqueAccess<std::set<QString>> ignoresUserIds_;
 
     //    std::map<UserId, TwitchAccountEmoteData> emotes;
     UniqueAccess<TwitchAccountEmoteData> emotes_;

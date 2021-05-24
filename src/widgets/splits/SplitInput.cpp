@@ -24,6 +24,7 @@
 #include <QPainter>
 
 namespace chatterino {
+const int TWITCH_MESSAGE_LIMIT = 500;
 
 SplitInput::SplitInput(Split *_chatWidget)
     : BaseWidget(_chatWidget)
@@ -85,6 +86,8 @@ void SplitInput::initLayout()
         app->fonts->getFont(FontStyle::ChatMedium, this->scale()));
     QObject::connect(this->ui_.textEdit, &QTextEdit::cursorPositionChanged,
                      this, &SplitInput::onCursorPositionChanged);
+    QObject::connect(this->ui_.textEdit, &QTextEdit::textChanged, this,
+                     &SplitInput::onTextChanged);
 
     this->managedConnections_.push_back(app->fonts->fontChanged.connect([=]() {
         this->ui_.textEdit->setFont(
@@ -247,12 +250,8 @@ void SplitInput::installKeyPressedEvent()
             }
             if (event->modifiers() == Qt::AltModifier)
             {
-                SplitContainer *page = this->split_->getContainer();
-
-                if (page != nullptr)
-                {
-                    page->selectNextSplit(SplitContainer::Above);
-                }
+                this->split_->actionRequested.invoke(
+                    Split::Action::SelectSplitAbove);
             }
             else
             {
@@ -312,49 +311,37 @@ void SplitInput::installKeyPressedEvent()
                  event->modifiers() == Qt::AltModifier)
         {
             // h: vim binding for left
-            SplitContainer *page = this->split_->getContainer();
-            event->accept();
+            this->split_->actionRequested.invoke(
+                Split::Action::SelectSplitLeft);
 
-            if (page != nullptr)
-            {
-                page->selectNextSplit(SplitContainer::Left);
-            }
+            event->accept();
         }
         else if (event->key() == Qt::Key_J &&
                  event->modifiers() == Qt::AltModifier)
         {
             // j: vim binding for down
-            SplitContainer *page = this->split_->getContainer();
-            event->accept();
+            this->split_->actionRequested.invoke(
+                Split::Action::SelectSplitBelow);
 
-            if (page != nullptr)
-            {
-                page->selectNextSplit(SplitContainer::Below);
-            }
+            event->accept();
         }
         else if (event->key() == Qt::Key_K &&
                  event->modifiers() == Qt::AltModifier)
         {
             // k: vim binding for up
-            SplitContainer *page = this->split_->getContainer();
-            event->accept();
+            this->split_->actionRequested.invoke(
+                Split::Action::SelectSplitAbove);
 
-            if (page != nullptr)
-            {
-                page->selectNextSplit(SplitContainer::Above);
-            }
+            event->accept();
         }
         else if (event->key() == Qt::Key_L &&
                  event->modifiers() == Qt::AltModifier)
         {
             // l: vim binding for right
-            SplitContainer *page = this->split_->getContainer();
-            event->accept();
+            this->split_->actionRequested.invoke(
+                Split::Action::SelectSplitRight);
 
-            if (page != nullptr)
-            {
-                page->selectNextSplit(SplitContainer::Right);
-            }
+            event->accept();
         }
         else if (event->key() == Qt::Key_Down)
         {
@@ -364,12 +351,8 @@ void SplitInput::installKeyPressedEvent()
             }
             if (event->modifiers() == Qt::AltModifier)
             {
-                SplitContainer *page = this->split_->getContainer();
-
-                if (page != nullptr)
-                {
-                    page->selectNextSplit(SplitContainer::Below);
-                }
+                this->split_->actionRequested.invoke(
+                    Split::Action::SelectSplitBelow);
             }
             else
             {
@@ -422,24 +405,16 @@ void SplitInput::installKeyPressedEvent()
         {
             if (event->modifiers() == Qt::AltModifier)
             {
-                SplitContainer *page = this->split_->getContainer();
-
-                if (page != nullptr)
-                {
-                    page->selectNextSplit(SplitContainer::Left);
-                }
+                this->split_->actionRequested.invoke(
+                    Split::Action::SelectSplitLeft);
             }
         }
         else if (event->key() == Qt::Key_Right)
         {
             if (event->modifiers() == Qt::AltModifier)
             {
-                SplitContainer *page = this->split_->getContainer();
-
-                if (page != nullptr)
-                {
-                    page->selectNextSplit(SplitContainer::Right);
-                }
+                this->split_->actionRequested.invoke(
+                    Split::Action::SelectSplitRight);
             }
         }
         else if ((event->key() == Qt::Key_C ||
@@ -472,6 +447,11 @@ void SplitInput::installKeyPressedEvent()
             event->accept();
         }
     });
+}
+
+void SplitInput::onTextChanged()
+{
+    this->updateColonMenu();
 }
 
 void SplitInput::onCursorPositionChanged()
@@ -632,6 +612,14 @@ void SplitInput::editTextChanged()
     if (text.length() > 0 && getSettings()->showMessageLength)
     {
         labelText = QString::number(text.length());
+        if (text.length() > TWITCH_MESSAGE_LIMIT)
+        {
+            this->ui_.textEditLength->setStyleSheet("color: red");
+        }
+        else
+        {
+            this->ui_.textEditLength->setStyleSheet("");
+        }
     }
     else
     {

@@ -1,14 +1,17 @@
 #include "Args.hpp"
 
+#include "common/QLogging.hpp"
+#include "singletons/Paths.hpp"
+#include "singletons/WindowManager.hpp"
+#include "util/AttachToConsole.hpp"
+#include "util/CombinePath.hpp"
+#include "widgets/Window.hpp"
+
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QDebug>
 #include <QStringList>
-#include "common/QLogging.hpp"
-#include "singletons/Paths.hpp"
-#include "singletons/WindowManager.hpp"
-#include "util/CombinePath.hpp"
-#include "widgets/Window.hpp"
+#include <QUuid>
 
 namespace chatterino {
 
@@ -25,11 +28,22 @@ Args::Args(const QApplication &app)
     // Added to ignore the parent-window option passed during native messaging
     QCommandLineOption parentWindowOption("parent-window");
     parentWindowOption.setFlags(QCommandLineOption::HiddenFromHelp);
+    QCommandLineOption parentWindowIdOption("x-attach-split-to-window", "",
+                                            "window-id");
+    parentWindowIdOption.setFlags(QCommandLineOption::HiddenFromHelp);
+
+    // Verbose
+    QCommandLineOption verboseOption({{"v", "verbose"},
+                                      "Attaches to the Console on windows, "
+                                      "allowing you to see debug output."});
+    crashRecoveryOption.setFlags(QCommandLineOption::HiddenFromHelp);
 
     parser.addOptions({
-        {{"v", "version"}, "Displays version information."},
+        {{"V", "version"}, "Displays version information."},
         crashRecoveryOption,
         parentWindowOption,
+        parentWindowIdOption,
+        verboseOption,
     });
     parser.addOption(QCommandLineOption(
         {"c", "channels"},
@@ -46,6 +60,7 @@ Args::Args(const QApplication &app)
 
     if (parser.isSet("help"))
     {
+        attachToConsole();
         qInfo().noquote() << parser.helpText();
         ::exit(EXIT_SUCCESS);
     }
@@ -60,8 +75,19 @@ Args::Args(const QApplication &app)
         this->applyCustomChannelLayout(parser.value("c"));
     }
 
-    this->printVersion = parser.isSet("v");
+    this->verbose = parser.isSet(verboseOption);
+
+    this->printVersion = parser.isSet("V");
     this->crashRecovery = parser.isSet("crash-recovery");
+
+    if (parser.isSet(parentWindowIdOption))
+    {
+        this->isFramelessEmbed = true;
+        this->dontSaveSettings = true;
+        this->dontLoadMainWindow = true;
+
+        this->parentWindowId = parser.value(parentWindowIdOption).toULongLong();
+    }
 }
 
 void Args::applyCustomChannelLayout(const QString &argValue)
@@ -95,7 +121,7 @@ void Args::applyCustomChannelLayout(const QString &argValue)
         return QRect(-1, -1, -1, -1);
     }();
 
-    window.geometry_ = std::move(configMainLayout);
+    window.geometry_ = configMainLayout;
 
     QStringList channelArgList = argValue.split(";");
     for (const QString &channelArg : channelArgList)

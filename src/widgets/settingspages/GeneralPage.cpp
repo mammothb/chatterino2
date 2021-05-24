@@ -7,6 +7,7 @@
 #include "Application.hpp"
 #include "common/Version.hpp"
 #include "singletons/Fonts.hpp"
+#include "singletons/NativeMessaging.hpp"
 #include "singletons/Paths.hpp"
 #include "singletons/Theme.hpp"
 #include "singletons/WindowManager.hpp"
@@ -17,6 +18,9 @@
 #include "widgets/BaseWindow.hpp"
 #include "widgets/helper/Line.hpp"
 #include "widgets/settingspages/GeneralPageView.hpp"
+
+#include <QDesktopServices>
+#include <QFileDialog>
 
 #define CHROME_EXTENSION_LINK                                           \
     "https://chrome.google.com/webstore/detail/chatterino-native-host/" \
@@ -227,33 +231,6 @@ void GeneralPage::initLayout(GeneralPageView &layout)
     layout.addCheckbox("Separate with lines", s.separateMessages);
     layout.addCheckbox("Alternate background color", s.alternateMessages);
     layout.addCheckbox("Show deleted messages", s.hideModerated, true);
-    layout.addCheckbox("Show last message line", s.showLastMessageIndicator);
-    layout.addDropdown<std::underlying_type<Qt::BrushStyle>::type>(
-        "Last message line style", {"Dotted", "Solid"}, s.lastMessagePattern,
-        [](int value) {
-            switch (value)
-            {
-                case Qt::VerPattern:
-                    return 0;
-                case Qt::SolidPattern:
-                default:
-                    return 1;
-            }
-        },
-        [](DropdownArgs args) {
-            switch (args.index)
-            {
-                case 0:
-                    return Qt::VerPattern;
-                case 1:
-                default:
-                    return Qt::SolidPattern;
-            }
-        },
-        false);
-    layout.addColorButton("Last message line color",
-                          QColor(getSettings()->lastMessageColor.getValue()),
-                          getSettings()->lastMessageColor);
     layout.addCheckbox("Highlight messages redeemed with Channel Points",
                        s.enableRedeemedHighlight);
     layout.addDropdown<QString>(
@@ -283,6 +260,36 @@ void GeneralPage::initLayout(GeneralPageView &layout)
         [](auto args) {
             return fuzzyToInt(args.value, 0);
         });
+    layout.addSeperator();
+    layout.addCheckbox("Draw a line below the most recent message before "
+                       "switching applications.",
+                       s.showLastMessageIndicator);
+    layout.addDropdown<std::underlying_type<Qt::BrushStyle>::type>(
+        "Line style", {"Dotted", "Solid"}, s.lastMessagePattern,
+        [](int value) {
+            switch (value)
+            {
+                case Qt::VerPattern:
+                    return 0;
+                case Qt::SolidPattern:
+                default:
+                    return 1;
+            }
+        },
+        [](DropdownArgs args) {
+            switch (args.index)
+            {
+                case 0:
+                    return Qt::VerPattern;
+                case 1:
+                default:
+                    return Qt::SolidPattern;
+            }
+        },
+        false);
+    layout.addColorButton("Line color",
+                          QColor(getSettings()->lastMessageColor.getValue()),
+                          getSettings()->lastMessageColor);
 
     layout.addTitle("Emotes");
     layout.addCheckbox("Enable", s.enableEmoteImages);
@@ -305,6 +312,8 @@ void GeneralPage::initLayout(GeneralPageView &layout)
             return fuzzyToFloat(args.value, 1.f);
         });
 
+    layout.addCheckbox("Remove spaces between emotes",
+                       s.removeSpacesBetweenEmotes);
     layout.addDropdown<int>(
         "Show info on hover", {"Don't show", "Always show", "Hold shift"},
         s.emotesTooltipPreview,
@@ -435,6 +444,16 @@ void GeneralPage::initLayout(GeneralPageView &layout)
     layout.addDescription("The browser extension replaces the default "
                           "Twitch.tv chat with chatterino.");
 
+    {
+        if (auto err = nmIpcError().get())
+        {
+            layout.addDescription(
+                "An error happened during initialization of the "
+                "browser extension: " +
+                *err);
+        }
+    }
+
     layout.addDescription(formatRichNamedLink(
         CHROME_EXTENSION_LINK,
         "Download for Google Chrome and similar browsers."));
@@ -453,7 +472,11 @@ void GeneralPage::initLayout(GeneralPageView &layout)
     layout.addDescription("All local files like settings and cache files are "
                           "store in this directory.");
     layout.addButton("Open AppData directory", [] {
+#ifdef Q_OS_DARWIN
+        QDesktopServices::openUrl("file://" + getPaths()->rootAppDataDirectory);
+#else
         QDesktopServices::openUrl(getPaths()->rootAppDataDirectory);
+#endif
     });
 
     layout.addSubtitle("Temporary files (Cache)");
@@ -539,16 +562,20 @@ void GeneralPage::initLayout(GeneralPageView &layout)
         });
 
     layout.addSubtitle("Visible badges");
-    layout.addCheckbox("Authority (staff, admin)",
-                       getSettings()->showBadgesGlobalAuthority);
+    layout.addCheckbox("Authority (staff, admin)", s.showBadgesGlobalAuthority);
+    layout.addCheckbox("Predictions", s.showBadgesPredictions);
     layout.addCheckbox("Channel (broadcaster, moderator)",
-                       getSettings()->showBadgesChannelAuthority);
-    layout.addCheckbox("Subscriber ", getSettings()->showBadgesSubscription);
-    layout.addCheckbox("Vanity (prime, bits, subgifter)",
-                       getSettings()->showBadgesVanity);
-    layout.addCheckbox("Chatterino", getSettings()->showBadgesChatterino);
+                       s.showBadgesChannelAuthority);
+    layout.addCheckbox("Subscriber ", s.showBadgesSubscription);
+    layout.addCheckbox("Vanity (prime, bits, subgifter)", s.showBadgesVanity);
+    layout.addCheckbox("Chatterino", s.showBadgesChatterino);
     layout.addCheckbox("FrankerFaceZ (Bot, FFZ Supporter, FFZ Developer)",
-                       getSettings()->showBadgesFfz);
+                       s.showBadgesFfz);
+    layout.addSeperator();
+    layout.addCheckbox("Use custom FrankerFaceZ moderator badges",
+                       s.useCustomFfzModeratorBadges);
+    layout.addCheckbox("Use custom FrankerFaceZ VIP badges",
+                       s.useCustomFfzVipBadges);
 
     layout.addSubtitle("Miscellaneous");
 

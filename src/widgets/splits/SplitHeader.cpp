@@ -168,7 +168,9 @@ namespace {
         if (settings.headerGame && !s.game.isEmpty())
             title += " - " + s.game;
         if (settings.headerStreamTitle && !s.title.isEmpty())
-            title += " - " + s.title;
+        {
+            title += " - " + s.title.simplified();
+        }
 
         return title;
     }
@@ -284,7 +286,7 @@ void SplitHeader::initializeLayout()
         // dropdown
         this->dropdownButton_ = makeWidget<Button>([&](auto w) {
             /// XXX: this never gets disconnected
-            this->split_->channelChanged.connect([this] {
+            QObject::connect(w, &Button::leftMousePress, this, [this] {
                 this->dropdownButton_->setMenu(this->createMainMenu());
             });
         }),
@@ -314,12 +316,14 @@ void SplitHeader::initializeLayout()
                              }
                          });
 
-    getSettings()->customURIScheme.connect([this] {
-        if (const auto drop = this->dropdownButton_)
-        {
-            drop->setMenu(this->createMainMenu());
-        }
-    });
+    getSettings()->customURIScheme.connect(
+        [this] {
+            if (const auto drop = this->dropdownButton_)
+            {
+                drop->setMenu(this->createMainMenu());
+            }
+        },
+        this->managedConnections_);
 
     layout->setMargin(0);
     layout->setSpacing(0);
@@ -803,6 +807,8 @@ void SplitHeader::mousePressEvent(QMouseEvent *event)
     switch (event->button())
     {
         case Qt::LeftButton: {
+            this->split_->giveFocus(Qt::MouseFocusReason);
+
             this->dragging_ = true;
 
             this->dragStart_ = event->pos();
@@ -886,12 +892,12 @@ void SplitHeader::themeChangedEvent()
 
     if (this->split_->hasFocus())
     {
-        palette.setColor(QPalette::Foreground,
+        palette.setColor(QPalette::WindowText,
                          this->theme->splits.header.focusedText);
     }
     else
     {
-        palette.setColor(QPalette::Foreground, this->theme->splits.header.text);
+        palette.setColor(QPalette::WindowText, this->theme->splits.header.text);
     }
     this->titleLabel_->setPalette(palette);
 

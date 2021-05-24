@@ -95,6 +95,7 @@ include(lib/wintoast.pri)
 include(lib/signals.pri)
 include(lib/settings.pri)
 include(lib/serialize.pri)
+include(lib/lrucache.pri)
 include(lib/winsdk.pri)
 include(lib/rapidjson.pri)
 include(lib/qtkeychain.pri)
@@ -126,6 +127,7 @@ SOURCES += \
     src/common/Args.cpp \
     src/common/Channel.cpp \
     src/common/ChannelChatters.cpp \
+    src/common/ChatterSet.cpp \
     src/common/ChatterinoSetting.cpp \
     src/common/CompletionModel.cpp \
     src/common/Credentials.cpp \
@@ -133,11 +135,11 @@ SOURCES += \
     src/common/Env.cpp \
     src/common/LinkParser.cpp \
     src/common/Modes.cpp \
+    src/common/NetworkCommon.cpp \
     src/common/NetworkManager.cpp \
     src/common/NetworkPrivate.cpp \
     src/common/NetworkRequest.cpp \
     src/common/NetworkResult.cpp \
-    src/common/UsernameSet.cpp \
     src/common/Version.cpp \
     src/common/WindowDescriptors.cpp \
     src/common/QLogging.cpp \
@@ -147,6 +149,8 @@ SOURCES += \
     src/controllers/commands/Command.cpp \
     src/controllers/commands/CommandController.cpp \
     src/controllers/commands/CommandModel.cpp \
+    src/controllers/highlights/BadgeHighlightModel.cpp \
+    src/controllers/highlights/HighlightBadge.cpp \
     src/controllers/filters/FilterModel.cpp \
     src/controllers/filters/parser/FilterParser.cpp \
     src/controllers/filters/parser/Tokenizer.cpp \
@@ -179,7 +183,9 @@ SOURCES += \
     src/messages/MessageContainer.cpp \
     src/messages/MessageElement.cpp \
     src/messages/search/AuthorPredicate.cpp \
+    src/messages/search/ChannelPredicate.cpp \
     src/messages/search/LinkPredicate.cpp \
+    src/messages/search/MessageFlagsPredicate.cpp \
     src/messages/search/SubstringPredicate.cpp \
     src/messages/SharedMessageBuilder.cpp \
     src/providers/bttv/BttvEmotes.cpp \
@@ -215,7 +221,6 @@ SOURCES += \
     src/providers/twitch/TwitchHelpers.cpp \
     src/providers/twitch/TwitchIrcServer.cpp \
     src/providers/twitch/TwitchMessageBuilder.cpp \
-    src/providers/twitch/TwitchParseCheerEmotes.cpp \
     src/providers/twitch/TwitchUser.cpp \
     src/RunGui.cpp \
     src/singletons/Badges.cpp \
@@ -233,8 +238,10 @@ SOURCES += \
     src/singletons/TooltipPreviewImage.cpp \
     src/singletons/Updates.cpp \
     src/singletons/WindowManager.cpp \
+    src/util/AttachToConsole.cpp \
     src/util/Clipboard.cpp \
     src/util/DebugCount.cpp \
+    src/util/DisplayBadge.cpp \
     src/util/FormatTime.cpp \
     src/util/FunctionEventFilter.cpp \
     src/util/FuzzyConvert.cpp \
@@ -256,6 +263,8 @@ SOURCES += \
     src/widgets/BasePopup.cpp \
     src/widgets/BaseWidget.cpp \
     src/widgets/BaseWindow.cpp \
+    src/widgets/FramelessEmbedWindow.cpp \
+    src/widgets/dialogs/BadgePickerDialog.cpp \
     src/widgets/dialogs/ChannelFilterEditorDialog.cpp \
     src/widgets/dialogs/ColorPickerDialog.cpp \
     src/widgets/dialogs/EmotePopup.cpp \
@@ -271,7 +280,6 @@ SOURCES += \
     src/widgets/dialogs/switcher/NewTabItem.cpp \
     src/widgets/dialogs/switcher/QuickSwitcherPopup.cpp \
     src/widgets/dialogs/switcher/SwitchSplitItem.cpp \
-    src/widgets/dialogs/TextInputDialog.cpp \
     src/widgets/dialogs/UpdateDialog.cpp \
     src/widgets/dialogs/UserInfoPopup.cpp \
     src/widgets/dialogs/WelcomeDialog.cpp \
@@ -333,6 +341,7 @@ HEADERS += \
     src/common/Atomic.hpp \
     src/common/Channel.hpp \
     src/common/ChannelChatters.hpp \
+    src/common/ChatterSet.hpp \
     src/common/ChatterinoSetting.hpp \
     src/common/Common.hpp \
     src/common/CompletionModel.hpp \
@@ -356,7 +365,6 @@ HEADERS += \
     src/common/SignalVectorModel.hpp \
     src/common/Singleton.hpp \
     src/common/UniqueAccess.hpp \
-    src/common/UsernameSet.hpp \
     src/common/Version.hpp \
     src/common/QLogging.hpp \
     src/controllers/accounts/Account.hpp \
@@ -365,6 +373,8 @@ HEADERS += \
     src/controllers/commands/Command.hpp \
     src/controllers/commands/CommandController.hpp \
     src/controllers/commands/CommandModel.hpp \
+    src/controllers/highlights/BadgeHighlightModel.hpp \
+    src/controllers/highlights/HighlightBadge.hpp \
     src/controllers/filters/FilterModel.hpp \
     src/controllers/filters/FilterRecord.hpp \
     src/controllers/filters/FilterSet.hpp \
@@ -406,7 +416,9 @@ HEADERS += \
     src/messages/MessageElement.hpp \
     src/messages/MessageParseArgs.hpp \
     src/messages/search/AuthorPredicate.hpp \
+    src/messages/search/ChannelPredicate.hpp \
     src/messages/search/LinkPredicate.hpp \
+    src/messages/search/MessageFlagsPredicate.hpp \
     src/messages/search/MessagePredicate.hpp \
     src/messages/search/SubstringPredicate.hpp \
     src/messages/Selection.hpp \
@@ -448,7 +460,6 @@ HEADERS += \
     src/providers/twitch/TwitchHelpers.hpp \
     src/providers/twitch/TwitchIrcServer.hpp \
     src/providers/twitch/TwitchMessageBuilder.hpp \
-    src/providers/twitch/TwitchParseCheerEmotes.hpp \
     src/providers/twitch/TwitchUser.hpp \
     src/RunGui.hpp \
     src/singletons/Badges.hpp \
@@ -466,11 +477,13 @@ HEADERS += \
     src/singletons/TooltipPreviewImage.hpp \
     src/singletons/Updates.hpp \
     src/singletons/WindowManager.hpp \
+    src/util/AttachToConsole.hpp \
     src/util/Clamp.hpp \
     src/util/Clipboard.hpp \
     src/util/CombinePath.hpp \
     src/util/ConcurrentMap.hpp \
     src/util/DebugCount.hpp \
+    src/util/DisplayBadge.hpp \
     src/util/DistanceBetweenPoints.hpp \
     src/util/FormatTime.hpp \
     src/util/FunctionEventFilter.hpp \
@@ -508,6 +521,8 @@ HEADERS += \
     src/widgets/BasePopup.hpp \
     src/widgets/BaseWidget.hpp \
     src/widgets/BaseWindow.hpp \
+    src/widgets/FramelessEmbedWindow.hpp \
+    src/widgets/dialogs/BadgePickerDialog.hpp \
     src/widgets/dialogs/ChannelFilterEditorDialog.hpp \
     src/widgets/dialogs/ColorPickerDialog.hpp \
     src/widgets/dialogs/EmotePopup.hpp \
@@ -525,7 +540,6 @@ HEADERS += \
     src/widgets/dialogs/switcher/QuickSwitcherModel.hpp \
     src/widgets/dialogs/switcher/QuickSwitcherPopup.hpp \
     src/widgets/dialogs/switcher/SwitchSplitItem.hpp \
-    src/widgets/dialogs/TextInputDialog.hpp \
     src/widgets/dialogs/UpdateDialog.hpp \
     src/widgets/dialogs/UserInfoPopup.hpp \
     src/widgets/dialogs/WelcomeDialog.hpp \

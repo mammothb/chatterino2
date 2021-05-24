@@ -7,17 +7,19 @@ namespace chatterino {
 
 ChannelChatters::ChannelChatters(Channel &channel)
     : channel_(channel)
+    , chatterColors_(ChannelChatters::maxChatterColorCount)
 {
 }
 
-AccessGuard<const UsernameSet> ChannelChatters::accessChatters() const
+SharedAccessGuard<const ChatterSet> ChannelChatters::accessChatters() const
 {
     return this->chatters_.accessConst();
 }
 
 void ChannelChatters::addRecentChatter(const QString &user)
 {
-    this->chatters_.access()->insert(user);
+    auto chatters = this->chatters_.access();
+    chatters->addRecentChatter(user);
 }
 
 void ChannelChatters::addJoinedUser(const QString &user)
@@ -65,29 +67,32 @@ void ChannelChatters::addPartedUser(const QString &user)
     }
 }
 
-void ChannelChatters::setChatters(UsernameSet &&set)
+void ChannelChatters::updateOnlineChatters(
+    const std::unordered_set<QString> &chatters)
 {
-    this->chatters_.access()->merge(std::move(set));
+    auto chatters_ = this->chatters_.access();
+    chatters_->updateOnlineChatters(chatters);
 }
 
 const QColor ChannelChatters::getUserColor(const QString &user)
 {
-    const auto chatterColors = this->chatterColors_.accessConst();
+    const auto chatterColors = this->chatterColors_.access();
 
-    const auto search = chatterColors->find(user.toLower());
-    if (search == chatterColors->end())
+    auto lowerUser = user.toLower();
+
+    if (!chatterColors->exists(lowerUser))
     {
         // Returns an invalid color so we can decide not to override `textColor`
         return QColor();
     }
 
-    return search->second;
+    return QColor::fromRgb(chatterColors->get(lowerUser));
 }
 
 void ChannelChatters::setUserColor(const QString &user, const QColor &color)
 {
     const auto chatterColors = this->chatterColors_.access();
-    chatterColors->insert_or_assign(user.toLower(), color);
+    chatterColors->put(user.toLower(), color.rgb());
 }
 
 }  // namespace chatterino

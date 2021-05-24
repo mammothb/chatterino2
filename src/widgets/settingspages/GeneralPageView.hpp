@@ -7,6 +7,11 @@
 #include "singletons/WindowManager.hpp"
 #include "widgets/helper/SignalLabel.hpp"
 
+#include <QCheckBox>
+#include <QComboBox>
+#include <QPushButton>
+#include <QSpinBox>
+
 class QScrollArea;
 
 namespace chatterino {
@@ -172,13 +177,11 @@ public:
             this->managedConnections_);
 
         QObject::connect(
-            combo,
-            QOverload<const QString &>::of(&QComboBox::currentIndexChanged),
-            //            &QComboBox::editTextChanged,
+            combo, QOverload<const int>::of(&QComboBox::currentIndexChanged),
             [combo, &setting,
-             setValue = std::move(setValue)](const QString &newValue) {
-                setting = setValue(
-                    DropdownArgs{newValue, combo->currentIndex(), combo});
+             setValue = std::move(setValue)](const int newIndex) {
+                setting = setValue(DropdownArgs{combo->itemText(newIndex),
+                                                combo->currentIndex(), combo});
                 getApp()->windows->forceLayoutChannelViews();
             });
 

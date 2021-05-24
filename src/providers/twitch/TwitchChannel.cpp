@@ -13,7 +13,6 @@
 #include "providers/twitch/PubsubClient.hpp"
 #include "providers/twitch/TwitchCommon.hpp"
 #include "providers/twitch/TwitchMessageBuilder.hpp"
-#include "providers/twitch/TwitchParseCheerEmotes.hpp"
 #include "providers/twitch/api/Helix.hpp"
 #include "providers/twitch/api/Kraken.hpp"
 #include "singletons/Emotes.hpp"
@@ -36,7 +35,7 @@
 namespace chatterino {
 namespace {
     constexpr char MAGIC_MESSAGE_SUFFIX[] = u8" \U000E0000";
-    constexpr int TITLE_REFRESH_PERIOD = 10;
+    constexpr int TITLE_REFRESH_PERIOD = 10000;
     constexpr int CLIP_CREATION_COOLDOWN = 5000;
     const QString CLIPS_LINK("https://clips.twitch.tv/%1");
     const QString CLIPS_FAILURE_CLIPS_DISABLED_TEXT(
@@ -120,13 +119,14 @@ namespace {
 
         return messages;
     }
-    std::pair<Outcome, UsernameSet> parseChatters(const QJsonObject &jsonRoot)
+    std::pair<Outcome, std::unordered_set<QString>> parseChatters(
+        const QJsonObject &jsonRoot)
     {
         static QStringList categories = {"broadcaster", "vips",   "moderators",
                                          "staff",       "admins", "global_mods",
                                          "viewers"};
 
-        auto usernames = UsernameSet();
+        auto usernames = std::unordered_set<QString>();
 
         // parse json
         QJsonObject jsonCategories = jsonRoot.value("chatters").toObject();
@@ -143,8 +143,7 @@ namespace {
     }
 }  // namespace
 
-TwitchChannel::TwitchChannel(const QString &name,
-                             TwitchBadges &globalTwitchBadges, BttvEmotes &bttv,
+TwitchChannel::TwitchChannel(const QString &name, BttvEmotes &bttv,
                              FfzEmotes &ffz)
     : Channel(name, Channel::Type::Twitch)
     , ChannelChatters(*static_cast<Channel *>(this))
@@ -153,13 +152,11 @@ TwitchChannel::TwitchChannel(const QString &name,
     , channelUrl_("https://twitch.tv/" + name)
     , popoutPlayerUrl_("https://player.twitch.tv/?parent=twitch.tv&channel=" +
                        name)
-    , globalTwitchBadges_(globalTwitchBadges)
     , globalBttv_(bttv)
     , globalFfz_(ffz)
     , bttvEmotes_(std::make_shared<EmoteMap>())
     , ffzEmotes_(std::make_shared<EmoteMap>())
     , mod_(false)
-    , titleRefreshedTime_(QTime::currentTime().addSecs(-TITLE_REFRESH_PERIOD))
 {
     qCDebug(chatterinoTwitch) << "[TwitchChannel" << name << "] Opened";
 
@@ -268,6 +265,12 @@ void TwitchChannel::refreshFFZChannelEmotes(bool manualRefresh)
             if (auto shared = weak.lock())
             {
                 this->ffzCustomModBadge_.set(std::move(modBadge));
+            }
+        },
+        [this, weak = weakOf<Channel>(this)](auto &&vipBadge) {
+            if (auto shared = weak.lock())
+            {
+                this->ffzCustomVipBadge_.set(std::move(vipBadge));
             }
         },
         manualRefresh);
@@ -449,8 +452,8 @@ void TwitchChannel::setRoomId(const QString &id)
     }
 }
 
-AccessGuard<const TwitchChannel::RoomModes> TwitchChannel::accessRoomModes()
-    const
+SharedAccessGuard<const TwitchChannel::RoomModes>
+    TwitchChannel::accessRoomModes() const
 {
     return this->roomModes_.accessConst();
 }
@@ -467,15 +470,10 @@ bool TwitchChannel::isLive() const
     return this->streamStatus_.access()->live;
 }
 
-AccessGuard<const TwitchChannel::StreamStatus>
+SharedAccessGuard<const TwitchChannel::StreamStatus>
     TwitchChannel::accessStreamStatus() const
 {
     return this->streamStatus_.accessConst();
-}
-
-const TwitchBadges &TwitchChannel::globalTwitchBadges() const
-{
-    return this->globalTwitchBadges_;
 }
 
 const BttvEmotes &TwitchChannel::globalBttv() const
@@ -565,15 +563,32 @@ void TwitchChannel::setLive(bool newLiveStatus)
                         getApp()->windows->sendAlert();
                     }
                 }
-                auto live =
-                    makeSystemMessage(this->getDisplayName() + " is live");
-                this->addMessage(live);
+                // Channel live message
+                MessageBuilder builder;
+                TwitchMessageBuilder::liveSystemMessage(this->getDisplayName(),
+                                                        &builder);
+                this->addMessage(builder.release());
+
+                // Message in /live channel
+                MessageBuilder builder2;
+                TwitchMessageBuilder::liveMessage(this->getDisplayName(),
+                                                  &builder2);
+                getApp()->twitch2->liveChannel->addMessage(builder2.release());
+
+                // Notify on all channels with a ping sound
+                if (getSettings()->notificationOnAnyChannel &&
+                    !(isInStreamerMode() &&
+                      getSettings()->streamerModeSuppressLiveNotifications))
+                {
+                    getApp()->notifications->playSound();
+                }
             }
             else
             {
-                auto offline =
-                    makeSystemMessage(this->getDisplayName() + " is offline");
-                this->addMessage(offline);
+                MessageBuilder builder;
+                TwitchMessageBuilder::offlineSystemMessage(
+                    this->getDisplayName(), &builder);
+                this->addMessage(builder.release());
             }
             guard->live = newLiveStatus;
         }
@@ -587,20 +602,20 @@ void TwitchChannel::setLive(bool newLiveStatus)
 
 void TwitchChannel::refreshTitle()
 {
-    auto roomID = this->roomId();
-    if (roomID.isEmpty())
+    // timer has never started, proceed and start it
+    if (!this->titleRefreshedTimer_.isValid())
+    {
+        this->titleRefreshedTimer_.start();
+    }
+    else if (this->roomId().isEmpty() ||
+             this->titleRefreshedTimer_.elapsed() < TITLE_REFRESH_PERIOD)
     {
         return;
     }
-
-    if (this->titleRefreshedTime_.elapsed() < TITLE_REFRESH_PERIOD * 1000)
-    {
-        return;
-    }
-    this->titleRefreshedTime_ = QTime::currentTime();
+    this->titleRefreshedTimer_.restart();
 
     getHelix()->getChannel(
-        roomID,
+        this->roomId(),
         [this, weak = weakOf<Channel>(this)](HelixChannel channel) {
             ChannelPtr shared = weak.lock();
 
@@ -728,6 +743,24 @@ void TwitchChannel::loadRecentMessages()
 
             for (auto message : messages)
             {
+                if (message->tags().contains("rm-received-ts"))
+                {
+                    QDate msgDate = QDateTime::fromMSecsSinceEpoch(
+                                        message->tags()
+                                            .value("rm-received-ts")
+                                            .toLongLong())
+                                        .date();
+                    if (msgDate != shared.get()->lastDate_)
+                    {
+                        shared.get()->lastDate_ = msgDate;
+                        auto msg = makeSystemMessage(
+                            QLocale().toString(msgDate, QLocale::LongFormat),
+                            QTime(0, 0));
+                        msg->flags.set(MessageFlag::RecentMessage);
+                        allBuiltMessages.emplace_back(msg);
+                    }
+                }
+
                 for (auto builtMessage :
                      handler.parseMessage(shared.get(), message))
                 {
@@ -791,7 +824,7 @@ void TwitchChannel::refreshChatters()
                 auto pair = parseChatters(std::move(data));
                 if (pair.first)
                 {
-                    this->setChatters(std::move(pair.second));
+                    this->updateOnlineChatters(pair.second);
                 }
 
                 return pair.first;
@@ -876,28 +909,26 @@ void TwitchChannel::refreshBadges()
 
 void TwitchChannel::refreshCheerEmotes()
 {
-    QString url("https://api.twitch.tv/kraken/bits/actions?channel_id=" +
-                this->roomId());
-    NetworkRequest::twitchRequest(url)
-        .onSuccess([this,
-                    weak = weakOf<Channel>(this)](auto result) -> Outcome {
+    getHelix()->getCheermotes(
+        this->roomId(),
+        [this, weak = weakOf<Channel>(this)](
+            const std::vector<HelixCheermoteSet> &cheermoteSets) -> Outcome {
             auto shared = weak.lock();
             if (!shared)
             {
                 return Failure;
             }
 
-            auto cheerEmoteSets = ParseCheermoteSets(result.parseRapidJson());
             std::vector<CheerEmoteSet> emoteSets;
 
-            for (auto &set : cheerEmoteSets)
+            for (const auto &set : cheermoteSets)
             {
                 auto cheerEmoteSet = CheerEmoteSet();
                 cheerEmoteSet.regex = QRegularExpression(
                     "^" + set.prefix + "([1-9][0-9]*)$",
                     QRegularExpression::CaseInsensitiveOption);
 
-                for (auto &tier : set.tiers)
+                for (const auto &tier : set.tiers)
                 {
                     CheerEmote cheerEmote;
 
@@ -909,39 +940,48 @@ void TwitchChannel::refreshCheerEmotes()
                     // We will continue to do so for now since we haven't had to
                     // solve that anywhere else
 
+                    // Combine the prefix (e.g. BibleThump) with the tier (1, 100 etc.)
+                    auto emoteTooltip =
+                        set.prefix + tier.id + "<br>Twitch Cheer Emote";
                     cheerEmote.animatedEmote = std::make_shared<Emote>(
                         Emote{EmoteName{"cheer emote"},
                               ImageSet{
-                                  tier.images["dark"]["animated"]["1"],
-                                  tier.images["dark"]["animated"]["2"],
-                                  tier.images["dark"]["animated"]["4"],
+                                  tier.darkAnimated.imageURL1x,
+                                  tier.darkAnimated.imageURL2x,
+                                  tier.darkAnimated.imageURL4x,
                               },
-                              Tooltip{}, Url{}});
+                              Tooltip{emoteTooltip}, Url{}});
                     cheerEmote.staticEmote = std::make_shared<Emote>(
                         Emote{EmoteName{"cheer emote"},
                               ImageSet{
-                                  tier.images["dark"]["static"]["1"],
-                                  tier.images["dark"]["static"]["2"],
-                                  tier.images["dark"]["static"]["4"],
+                                  tier.darkStatic.imageURL1x,
+                                  tier.darkStatic.imageURL2x,
+                                  tier.darkStatic.imageURL4x,
                               },
-                              Tooltip{}, Url{}});
+                              Tooltip{emoteTooltip}, Url{}});
 
-                    cheerEmoteSet.cheerEmotes.emplace_back(cheerEmote);
+                    cheerEmoteSet.cheerEmotes.emplace_back(
+                        std::move(cheerEmote));
                 }
 
+                // Sort cheermotes by cost
                 std::sort(cheerEmoteSet.cheerEmotes.begin(),
                           cheerEmoteSet.cheerEmotes.end(),
                           [](const auto &lhs, const auto &rhs) {
                               return lhs.minBits > rhs.minBits;
                           });
 
-                emoteSets.emplace_back(cheerEmoteSet);
+                emoteSets.emplace_back(std::move(cheerEmoteSet));
             }
+
             *this->cheerEmoteSets_.access() = std::move(emoteSets);
 
             return Success;
-        })
-        .execute();
+        },
+        [] {
+            // Failure
+            return Failure;
+        });
 }
 
 void TwitchChannel::createClip()
@@ -953,8 +993,13 @@ void TwitchChannel::createClip()
         return;
     }
 
-    if (QTime().currentTime() < this->timeNextClipCreationAllowed_ ||
-        this->isClipCreationInProgress)
+    // timer has never started, proceed and start it
+    if (!this->clipCreationTimer_.isValid())
+    {
+        this->clipCreationTimer_.start();
+    }
+    else if (this->clipCreationTimer_.elapsed() < CLIP_CREATION_COOLDOWN ||
+             this->isClipCreationInProgress)
     {
         return;
     }
@@ -1034,8 +1079,7 @@ void TwitchChannel::createClip()
         },
         // finallyCallback - this will always execute, so clip creation won't ever be stuck
         [this] {
-            this->timeNextClipCreationAllowed_ =
-                QTime().currentTime().addMSecs(CLIP_CREATION_COOLDOWN);
+            this->clipCreationTimer_.restart();
             this->isClipCreationInProgress = false;
         });
 }
@@ -1059,6 +1103,11 @@ boost::optional<EmotePtr> TwitchChannel::twitchBadge(
 boost::optional<EmotePtr> TwitchChannel::ffzCustomModBadge() const
 {
     return this->ffzCustomModBadge_.get();
+}
+
+boost::optional<EmotePtr> TwitchChannel::ffzCustomVipBadge() const
+{
+    return this->ffzCustomVipBadge_.get();
 }
 
 boost::optional<CheerEmote> TwitchChannel::cheerEmote(const QString &string)

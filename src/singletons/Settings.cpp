@@ -18,6 +18,7 @@ ConcurrentSettings::ConcurrentSettings()
     // NOTE: these do not get deleted
     : highlightedMessages(*new SignalVector<HighlightPhrase>())
     , highlightedUsers(*new SignalVector<HighlightPhrase>())
+    , highlightedBadges(*new SignalVector<HighlightBadge>())
     , blacklistedUsers(*new SignalVector<HighlightBlacklistUser>())
     , ignoredEmotes(*new SignalVector<QString>())
     , ignoredMessages(*new SignalVector<IgnorePhrase>())
@@ -27,6 +28,7 @@ ConcurrentSettings::ConcurrentSettings()
 {
     persist(this->highlightedMessages, "/highlighting/highlights");
     persist(this->blacklistedUsers, "/highlighting/blacklist");
+    persist(this->highlightedBadges, "/highlighting/badges");
     persist(this->highlightedUsers, "/highlighting/users");
     persist(this->ignoredEmotes, "/ignore/emotes");
     persist(this->ignoredMessages, "/ignore/phrases");

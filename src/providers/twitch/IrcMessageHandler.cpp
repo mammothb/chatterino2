@@ -14,6 +14,7 @@
 #include "singletons/Settings.hpp"
 #include "singletons/WindowManager.hpp"
 #include "util/FormatTime.hpp"
+#include "util/Helpers.hpp"
 #include "util/IrcHelpers.hpp"
 
 #include <IrcMessage>
@@ -22,6 +23,16 @@
 
 namespace {
 using namespace chatterino;
+
+// Message types below are the ones that might contain special user's message on USERNOTICE
+static const QSet<QString> specialMessageTypes{
+    "sub",            //
+    "subgift",        //
+    "resub",          // resub messages
+    "bitsbadgetier",  // bits badge upgrade
+    "ritual",         // new viewer ritual
+};
+
 MessagePtr generateBannedMessage(bool confirmedBan)
 {
     const auto linkColor = MessageColor(MessageColor::Link);
@@ -415,22 +426,16 @@ void IrcMessageHandler::handleClearChatMessage(Communi::IrcMessage *message)
 
     // get username, duration and message of the timed out user
     QString username = message->parameter(1);
-    QString durationInSeconds, reason;
+    QString durationInSeconds;
     QVariant v = message->tag("ban-duration");
     if (v.isValid())
     {
         durationInSeconds = v.toString();
     }
 
-    v = message->tag("ban-reason");
-    if (v.isValid())
-    {
-        reason = v.toString();
-    }
-
     auto timeoutMsg =
-        MessageBuilder(timeoutMessage, username, durationInSeconds, reason,
-                       false, calculateMessageTimestamp(message))
+        MessageBuilder(timeoutMessage, username, durationInSeconds, false,
+                       calculateMessageTimestamp(message))
             .release();
     chan->addOrReplaceTimeout(timeoutMsg);
 
@@ -514,6 +519,10 @@ void IrcMessageHandler::handleUserStateMessage(Communi::IrcMessage *message)
             tc->setMod(_mod == "1");
         }
     }
+
+    // handle emotes
+    app->accounts->twitch.getCurrent()->loadUserstateEmotes(
+        message->tag("emote-sets").toString().split(","));
 }
 
 void IrcMessageHandler::handleWhisperMessage(Communi::IrcMessage *message)
@@ -562,12 +571,9 @@ std::vector<MessagePtr> IrcMessageHandler::parseUserNoticeMessage(
 {
     std::vector<MessagePtr> builtMessages;
 
-    auto data = message->toData();
-
     auto tags = message->tags();
     auto parameters = message->parameters();
 
-    auto target = parameters[0];
     QString msgType = tags.value("msg-id", "").toString();
     QString content;
     if (parameters.size() >= 2)
@@ -575,10 +581,9 @@ std::vector<MessagePtr> IrcMessageHandler::parseUserNoticeMessage(
         content = parameters[1];
     }
 
-    if (msgType == "sub" || msgType == "resub" || msgType == "subgift")
+    if (specialMessageTypes.contains(msgType))
     {
-        // Sub-specific message. I think it's only allowed for "resub" messages
-        // atm
+        // Messages are not required, so they might be empty
         if (!content.isEmpty())
         {
             MessageParseArgs args;
@@ -596,9 +601,19 @@ std::vector<MessagePtr> IrcMessageHandler::parseUserNoticeMessage(
 
     if (it != tags.end())
     {
-        auto b =
-            MessageBuilder(systemMessage, parseTagString(it.value().toString()),
-                           calculateMessageTimestamp(message));
+        // By default, we return value of system-msg tag
+        QString messageText = it.value().toString();
+
+        if (msgType == "bitsbadgetier")
+        {
+            messageText = QString("%1 just earned a new %2 Bits badge!")
+                              .arg(tags.value("display-name").toString())
+                              .arg(kFormatNumbers(
+                                  tags.value("msg-param-threshold").toInt()));
+        }
+
+        auto b = MessageBuilder(systemMessage, parseTagString(messageText),
+                                calculateMessageTimestamp(message));
 
         b->flags.set(MessageFlag::Subscription);
         auto newMessage = b.release();
@@ -611,8 +626,6 @@ std::vector<MessagePtr> IrcMessageHandler::parseUserNoticeMessage(
 void IrcMessageHandler::handleUserNoticeMessage(Communi::IrcMessage *message,
                                                 TwitchIrcServer &server)
 {
-    auto data = message->toData();
-
     auto tags = message->tags();
     auto parameters = message->parameters();
 
@@ -624,10 +637,9 @@ void IrcMessageHandler::handleUserNoticeMessage(Communi::IrcMessage *message,
         content = parameters[1];
     }
 
-    if (msgType == "sub" || msgType == "resub" || msgType == "subgift")
+    if (specialMessageTypes.contains(msgType))
     {
-        // Sub-specific message. I think it's only allowed for "resub" messages
-        // atm
+        // Messages are not required, so they might be empty
         if (!content.isEmpty())
         {
             this->addMessage(message, target, content, server, true, false);
@@ -638,9 +650,19 @@ void IrcMessageHandler::handleUserNoticeMessage(Communi::IrcMessage *message,
 
     if (it != tags.end())
     {
-        auto b =
-            MessageBuilder(systemMessage, parseTagString(it.value().toString()),
-                           calculateMessageTimestamp(message));
+        // By default, we return value of system-msg tag
+        QString messageText = it.value().toString();
+
+        if (msgType == "bitsbadgetier")
+        {
+            messageText = QString("%1 just earned a new %2 Bits badge!")
+                              .arg(tags.value("display-name").toString())
+                              .arg(kFormatNumbers(
+                                  tags.value("msg-param-threshold").toInt()));
+        }
+
+        auto b = MessageBuilder(systemMessage, parseTagString(messageText),
+                                calculateMessageTimestamp(message));
 
         b->flags.set(MessageFlag::Subscription);
         auto newMessage = b.release();
@@ -702,6 +724,7 @@ std::vector<MessagePtr> IrcMessageHandler::parseNoticeMessage(
 
         auto builder = MessageBuilder();
         builder.message().flags.set(MessageFlag::System);
+        builder.message().flags.set(MessageFlag::DoNotTriggerNotification);
 
         builder.emplace<TimestampElement>();
         builder.emplace<TextElement>(expirationText, MessageElementFlag::Text,
@@ -719,16 +742,18 @@ std::vector<MessagePtr> IrcMessageHandler::parseNoticeMessage(
     }
     else if (message->tags()["msg-id"] == "msg_timedout")
     {
-        std::vector<MessagePtr> builtMessages;
+        std::vector<MessagePtr> builtMessage;
 
-        QString formattedMessage = "You are timed out for ";
-        formattedMessage.append(
-            formatTime(message->content().split(" ").value(5)));
+        QString remainingTime =
+            formatTime(message->content().split(" ").value(5));
+        QString formattedMessage =
+            QString("You are timed out for %1.")
+                .arg(remainingTime.isEmpty() ? "0s" : remainingTime);
 
-        builtMessages.emplace_back(makeSystemMessage(
-            formattedMessage.append("."), calculateMessageTimestamp(message)));
+        builtMessage.emplace_back(makeSystemMessage(
+            formattedMessage, calculateMessageTimestamp(message)));
 
-        return builtMessages;
+        return builtMessage;
     }
     else
     {
@@ -778,6 +803,23 @@ void IrcMessageHandler::handleNoticeMessage(Communi::IrcNoticeMessage *message)
             channel->addMessage(makeSystemMessage(
                 "Usage: \"/delete <msg-id>\" - can't take more "
                 "than one argument"));
+        }
+        else if (tags == "host_on")
+        {
+            QStringList parts = msg->messageText.split(QLatin1Char(' '));
+            if (parts.size() != 3)
+            {
+                return;
+            }
+            auto &channelName = parts[2];
+            if (channelName.size() < 2)
+            {
+                return;
+            }
+            channelName.chop(1);
+            MessageBuilder builder;
+            TwitchMessageBuilder::hostingSystemMessage(channelName, &builder);
+            channel->addMessage(builder.release());
         }
         else
         {
